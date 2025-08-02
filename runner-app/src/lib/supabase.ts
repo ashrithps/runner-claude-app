@@ -1,0 +1,46 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+export type Task = {
+  id: string
+  title: string
+  description?: string
+  location: string
+  time: string
+  reward: number
+  upi_id?: string
+  poster_id: string
+  runner_id?: string
+  status: 'available' | 'in_progress' | 'completed'
+  created_at: string
+  updated_at: string
+}
+
+export type User = {
+  id: string
+  email: string
+  name: string
+  tower: string
+  flat: string
+  mobile: string
+  available_for_tasks: boolean
+  email_notifications: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type Notification = {
+  id: string
+  user_id: string
+  task_id: string
+  type: 'task_assigned' | 'task_completed' | 'task_cancelled'
+  title: string
+  message: string
+  read: boolean
+  sent_via_email: boolean
+  created_at: string
+}

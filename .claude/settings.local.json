@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)",
+      "Bash(NEXT_DEBUG=1 npm run build)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npm run build)",
+      "Bash(ls:*)",
+      "Bash(pkill:*)",
+      "Bash(rm:*)",
+      "Bash(npm cache clean:*)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_advisors",
+      "Bash(NEXT_DEBUG=1 npm run dev)"
+    ],
+    "deny": []
+  }
+}
