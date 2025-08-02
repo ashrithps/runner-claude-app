@@ -1,37 +1,121 @@
 import { v4 as uuidv4 } from 'uuid'
 
-// Simple in-memory database for development
-// In production with Replit, this would be replaced with actual Replit Database
-class SimpleDB {
-  private data: Map<string, any> = new Map()
+// Replit Database implementation
+// This uses Replit's built-in database service
+class ReplitDatabase {
+  private db: any = null
+
+  constructor() {
+    // Initialize Replit database
+    if (typeof window === 'undefined') {
+      // Server-side only
+      this.initDatabase()
+    }
+  }
+
+  private async initDatabase() {
+    try {
+      // Replit provides a global database object
+      if (typeof globalThis !== 'undefined' && (globalThis as any).Database) {
+        this.db = new (globalThis as any).Database()
+      } else {
+        // Fallback to in-memory storage for development
+        console.warn('Replit Database not available, using in-memory storage')
+        this.db = new Map()
+      }
+    } catch (error) {
+      console.error('Failed to initialize database:', error)
+      this.db = new Map()
+    }
+  }
 
   async set(key: string, value: any): Promise<void> {
-    this.data.set(key, value)
+    if (!this.db) await this.initDatabase()
+    
+    try {
+      if (this.db.set) {
+        await this.db.set(key, JSON.stringify(value))
+      } else {
+        this.db.set(key, JSON.stringify(value))
+      }
+    } catch (error) {
+      console.error('Database set error:', error)
+    }
   }
 
   async get(key: string): Promise<any> {
-    return this.data.get(key)
+    if (!this.db) await this.initDatabase()
+    
+    try {
+      let value
+      if (this.db.get) {
+        value = await this.db.get(key)
+      } else {
+        value = this.db.get(key)
+      }
+      
+      if (value) {
+        return JSON.parse(value)
+      }
+      return null
+    } catch (error) {
+      console.error('Database get error:', error)
+      return null
+    }
   }
 
   async delete(key: string): Promise<void> {
-    this.data.delete(key)
+    if (!this.db) await this.initDatabase()
+    
+    try {
+      if (this.db.delete) {
+        await this.db.delete(key)
+      } else {
+        this.db.delete(key)
+      }
+    } catch (error) {
+      console.error('Database delete error:', error)
+    }
   }
 
   async list(prefix?: string): Promise<string[]> {
-    const keys = Array.from(this.data.keys())
-    if (prefix) {
-      return keys.filter(key => key.startsWith(prefix))
+    if (!this.db) await this.initDatabase()
+    
+    try {
+      let keys
+      if (this.db.list) {
+        keys = await this.db.list(prefix || '')
+      } else {
+        // Fallback for in-memory storage
+        keys = Array.from(this.db.keys())
+        if (prefix) {
+          keys = keys.filter(key => key.startsWith(prefix))
+        }
+      }
+      return keys || []
+    } catch (error) {
+      console.error('Database list error:', error)
+      return []
     }
-    return keys
   }
 
   async clear(): Promise<void> {
-    this.data.clear()
+    if (!this.db) await this.initDatabase()
+    
+    try {
+      if (this.db.empty) {
+        await this.db.empty()
+      } else {
+        this.db.clear()
+      }
+    } catch (error) {
+      console.error('Database clear error:', error)
+    }
   }
 }
 
 // Initialize database instance
-export const db = new SimpleDB()
+export const db = new ReplitDatabase()
 
 // Types (same as before but for our new database)
 export type Task = {
@@ -134,7 +218,7 @@ export class ReplitDB {
     const users: User[] = []
     
     for (const key of keys) {
-      if (key.startsWith('user:') && !key.includes('_email:')) {
+      if (typeof key === 'string' && key.startsWith('user:') && !key.includes('_email:')) {
         const user = await db.get(key)
         if (user) users.push(user as User)
       }
@@ -183,8 +267,10 @@ export class ReplitDB {
     const tasks: Task[] = []
     
     for (const key of keys) {
-      const task = await db.get(key)
-      if (task) tasks.push(task as Task)
+      if (typeof key === 'string') {
+        const task = await db.get(key)
+        if (task) tasks.push(task as Task)
+      }
     }
     
     return tasks
@@ -276,9 +362,11 @@ export class ReplitDB {
     const notifications: Notification[] = []
     
     for (const key of keys) {
-      const notification = await db.get(key)
-      if (notification && (notification as Notification).user_id === userId) {
-        notifications.push(notification as Notification)
+      if (typeof key === 'string') {
+        const notification = await db.get(key)
+        if (notification && (notification as Notification).user_id === userId) {
+          notifications.push(notification as Notification)
+        }
       }
     }
     
@@ -299,7 +387,9 @@ export class ReplitDB {
   static async clearAllData(): Promise<void> {
     const keys = await db.list()
     for (const key of keys) {
-      await db.delete(key)
+      if (typeof key === 'string') {
+        await db.delete(key)
+      }
     }
   }
 
@@ -312,10 +402,10 @@ export class ReplitDB {
     const keys = await db.list()
     
     return {
-      users: keys.filter(key => key.startsWith('user:') && !key.includes('_email:')).length,
-      tasks: keys.filter(key => key.startsWith('task:')).length,
-      notifications: keys.filter(key => key.startsWith('notification:')).length,
-      otpSessions: keys.filter(key => key.startsWith('otp:')).length
+      users: keys.filter(key => typeof key === 'string' && key.startsWith('user:') && !key.includes('_email:')).length,
+      tasks: keys.filter(key => typeof key === 'string' && key.startsWith('task:')).length,
+      notifications: keys.filter(key => typeof key === 'string' && key.startsWith('notification:')).length,
+      otpSessions: keys.filter(key => typeof key === 'string' && key.startsWith('otp:')).length
     }
   }
 
