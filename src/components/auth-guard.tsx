@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
 import { Loader2 } from 'lucide-react'
 
@@ -15,7 +14,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
-  const { setUser, clearUser } = useAppStore()
+  const { setUser, clearUser, refreshUserData } = useAppStore()
 
   useEffect(() => {
     // Only run on client-side
@@ -25,37 +24,28 @@ export function AuthGuard({ children }: AuthGuardProps) {
     
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const response = await fetch('/api/auth/me')
         
-        if (session?.user) {
-          // Get user profile
-          const { data: userProfile, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (userProfile && !error) {
-            setUser({
-              id: userProfile.id,
-              email: userProfile.email,
-              name: userProfile.name,
-              tower: userProfile.tower,
-              flat: userProfile.flat,
-              mobile: userProfile.mobile,
-              available_for_tasks: userProfile.available_for_tasks,
-              email_notifications: userProfile.email_notifications,
-              created_at: userProfile.created_at,
-              updated_at: userProfile.updated_at
-            })
+        if (response.ok) {
+          const { user } = await response.json()
+          
+          if (user && user.name && user.tower && user.flat) {
+            // User has complete profile
+            setUser(user)
             setIsAuthenticated(true)
+          } else if (user) {
+            // User authenticated but incomplete profile, redirect to auth
+            setUser(user)
+            router.push('/auth')
+            return
           } else {
-            // User authenticated but no profile, redirect to auth for profile completion
+            // No user data, redirect to auth
+            clearUser()
             router.push('/auth')
             return
           }
         } else {
-          // No session, redirect to auth
+          // Not authenticated, redirect to auth
           clearUser()
           router.push('/auth')
           return
@@ -72,41 +62,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     checkAuth()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          clearUser()
-          router.push('/auth')
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          // Refresh user profile
-          const { data: userProfile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+    // Periodically check auth status
+    const interval = setInterval(() => {
+      refreshUserData()
+    }, 5 * 60 * 1000) // Check every 5 minutes
 
-          if (userProfile) {
-            setUser({
-              id: userProfile.id,
-              email: userProfile.email,
-              name: userProfile.name,
-              tower: userProfile.tower,
-              flat: userProfile.flat,
-              mobile: userProfile.mobile,
-              available_for_tasks: userProfile.available_for_tasks,
-              email_notifications: userProfile.email_notifications,
-              created_at: userProfile.created_at,
-              updated_at: userProfile.updated_at
-            })
-            setIsAuthenticated(true)
-          }
-        }
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [router, setUser, clearUser])
+    return () => clearInterval(interval)
+  }, [router, setUser, clearUser, refreshUserData])
 
   if (!mounted || isLoading) {
     return (

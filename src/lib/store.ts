@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { supabase } from './supabase'
+import { ReplitDB } from './replitdb'
 import { NotificationService } from './notifications'
 
 // Utility to check if a string is a valid UUID
@@ -58,6 +58,7 @@ interface AppState {
   updateTaskStatus: (taskId: string, status: Task['status']) => void
   loadTasks: () => Promise<void>
   signOut: () => Promise<void>
+  refreshUserData: () => Promise<void>
 }
 
 // Generate sample data
@@ -117,47 +118,51 @@ export const useAppStore = create<AppState>()(
 
       signOut: async () => {
         try {
-          await supabase.auth.signOut()
+          await fetch('/api/auth/logout', { method: 'POST' })
           set({ user: null, tasks: [], myPostedTasks: [], myAcceptedTasks: [] })
         } catch (error) {
           console.error('Error signing out:', error)
         }
       },
 
+      refreshUserData: async () => {
+        try {
+          const response = await fetch('/api/auth/me')
+          if (response.ok) {
+            const { user } = await response.json()
+            set({ user })
+          }
+        } catch (error) {
+          console.error('Error refreshing user data:', error)
+        }
+      },
+
       ensureUserInDatabase: async (user: User): Promise<boolean> => {
         try {
-          console.log('Attempting to upsert user:', user)
+          console.log('Ensuring user exists in Replit DB:', user)
           
-          // Remove any undefined/null fields that could cause issues
-          const cleanUser = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            tower: user.tower,
-            flat: user.flat,
-            mobile: user.mobile,
-            available_for_tasks: user.available_for_tasks,
-            email_notifications: user.email_notifications
-          }
+          // Check if user exists
+          const existingUser = await ReplitDB.getUserById(user.id)
           
-          const { error, data } = await supabase
-            .from('users')
-            .upsert(cleanUser, { onConflict: 'id' })
-            .select()
-
-          if (error) {
-            console.error('Error ensuring user in database:', {
-              error,
-              user: cleanUser,
-              errorCode: error.code,
-              errorMessage: error.message,
-              errorDetails: error.details
-            })
-            return false
+          if (!existingUser) {
+            // Create user if doesn't exist
+            const cleanUser = {
+              email: user.email,
+              name: user.name,
+              tower: user.tower,
+              flat: user.flat,
+              mobile: user.mobile,
+              available_for_tasks: user.available_for_tasks,
+              email_notifications: user.email_notifications
+            }
+            
+            await ReplitDB.createUser(cleanUser)
+            console.log('User created in Replit DB')
           } else {
-            console.log('User successfully upserted:', data)
-            return true
+            console.log('User already exists in Replit DB')
           }
+          
+          return true
         } catch (err) {
           console.error('Failed to ensure user in database:', err)
           return false
@@ -185,34 +190,21 @@ export const useAppStore = create<AppState>()(
 
           console.log('User ensured, now creating task...')
 
-          // Remove poster_name from the data sent to Supabase since it's not a database column
+          // Remove poster_name from the data sent to DB since it's derived
           const { poster_name, ...dbTaskData } = taskData
           
-          const { data, error } = await supabase
-            .from('tasks')
-            .insert(dbTaskData)
-            .select(`
-              *,
-              poster:users!poster_id(name)
-            `)
-            .single()
-
-          if (error) {
-            console.error('Error creating task:', error)
-            console.error('Task data that failed:', dbTaskData)
-            return
-          }
-
-          console.log('Task created successfully:', data)
-
-          const newTask = {
-            ...data,
-            poster_name: data.poster?.name || poster_name
+          const newTask = await ReplitDB.createTask(dbTaskData)
+          
+          // Get poster name for display
+          const poster = await ReplitDB.getUserById(dbTaskData.poster_id)
+          const taskWithNames = {
+            ...newTask,
+            poster_name: poster?.name || poster_name
           }
           
           set((state) => ({
-            tasks: [newTask, ...state.tasks],
-            myPostedTasks: [...state.myPostedTasks, newTask]
+            tasks: [taskWithNames, ...state.tasks],
+            myPostedTasks: [...state.myPostedTasks, taskWithNames]
           }))
         } catch (err) {
           console.error('Failed to create task:', err)
@@ -240,40 +232,33 @@ export const useAppStore = create<AppState>()(
 
           console.log('Runner user ensured, now accepting task...')
 
-          const { data, error } = await supabase
-            .from('tasks')
-            .update({
-              status: 'in_progress',
-              runner_id: runnerId
-            })
-            .eq('id', taskId)
-            .select(`
-              *,
-              poster:users!poster_id(name, email, email_notifications, mobile),
-              runner:users!runner_id(name, mobile)
-            `)
-            .single()
+          const updatedTask = await ReplitDB.updateTask(taskId, {
+            status: 'in_progress',
+            runner_id: runnerId
+          })
 
-          if (error) {
-            console.error('Error accepting task:', error)
+          if (!updatedTask) {
+            console.error('Task not found or failed to update')
             return
           }
 
-          console.log('Task accepted successfully:', data)
+          // Get user details for display
+          const poster = await ReplitDB.getUserById(updatedTask.poster_id)
+          const runner = await ReplitDB.getUserById(runnerId)
 
-          const updatedTask = {
-            ...data,
-            poster_name: data.poster?.name || '',
-            poster_mobile: data.poster?.mobile || '',
-            runner_name: data.runner?.name || runnerName,
-            runner_mobile: data.runner?.mobile || ''
+          const taskWithNames = {
+            ...updatedTask,
+            poster_name: poster?.name || '',
+            poster_mobile: poster?.mobile || '',
+            runner_name: runner?.name || runnerName,
+            runner_mobile: runner?.mobile || ''
           }
 
           // Send notification to task poster
-          if (data.poster?.email && data.poster.email_notifications) {
+          if (poster?.email && poster.email_notifications) {
             NotificationService.notifyTaskAssigned(
-              updatedTask,
-              data.poster.email,
+              taskWithNames,
+              poster.email,
               runnerName
             ).catch(error => console.error('Failed to send task assigned notification:', error))
           }
@@ -284,9 +269,9 @@ export const useAppStore = create<AppState>()(
 
             return {
               tasks: state.tasks.filter(t => t.id !== taskId),
-              myAcceptedTasks: [...state.myAcceptedTasks, updatedTask],
+              myAcceptedTasks: [...state.myAcceptedTasks, taskWithNames],
               myPostedTasks: state.myPostedTasks.map(t => 
-                t.id === taskId ? updatedTask : t
+                t.id === taskId ? taskWithNames : t
               )
             }
           })
@@ -297,50 +282,43 @@ export const useAppStore = create<AppState>()(
 
       completeTask: async (taskId) => {
         try {
-          const { data, error } = await supabase
-            .from('tasks')
-            .update({ status: 'completed' })
-            .eq('id', taskId)
-            .select(`
-              *,
-              poster:users!poster_id(name, email, email_notifications, mobile),
-              runner:users!runner_id(name, mobile)
-            `)
-            .single()
+          const updatedTask = await ReplitDB.updateTask(taskId, { status: 'completed' })
 
-          if (error) {
-            console.error('Error completing task:', error)
+          if (!updatedTask) {
+            console.error('Task not found or failed to update')
             return
           }
 
-          console.log('Task completed successfully:', data)
+          // Get user details for display and notifications
+          const poster = await ReplitDB.getUserById(updatedTask.poster_id)
+          const runner = updatedTask.runner_id ? await ReplitDB.getUserById(updatedTask.runner_id) : null
 
-          const updatedTask = {
-            ...data,
-            poster_name: data.poster?.name || '',
-            poster_mobile: data.poster?.mobile || '',
-            runner_name: data.runner?.name || '',
-            runner_mobile: data.runner?.mobile || ''
+          const taskWithNames = {
+            ...updatedTask,
+            poster_name: poster?.name || '',
+            poster_mobile: poster?.mobile || '',
+            runner_name: runner?.name || '',
+            runner_mobile: runner?.mobile || ''
           }
 
           // Send notification to task poster
-          if (data.poster?.email && data.poster.email_notifications) {
+          if (poster?.email && poster.email_notifications) {
             NotificationService.notifyTaskCompleted(
-              updatedTask,
-              data.poster.email,
-              data.runner?.name || 'Anonymous'
+              taskWithNames,
+              poster.email,
+              runner?.name || 'Anonymous'
             ).catch(error => console.error('Failed to send task completed notification:', error))
           }
 
           set((state) => ({
             myAcceptedTasks: state.myAcceptedTasks.map(task =>
               task.id === taskId
-                ? { ...updatedTask, status: 'completed' as const, updated_at: new Date().toISOString() }
+                ? { ...taskWithNames, status: 'completed' as const }
                 : task
             ),
             myPostedTasks: state.myPostedTasks.map(task =>
               task.id === taskId
-                ? { ...updatedTask, status: 'completed' as const, updated_at: new Date().toISOString() }
+                ? { ...taskWithNames, status: 'completed' as const }
                 : task
             )
           }))
@@ -371,31 +349,23 @@ export const useAppStore = create<AppState>()(
 
       loadTasks: async () => {
         try {
-          const { data, error } = await supabase
-            .from('tasks')
-            .select(`
-              *,
-              poster:users!poster_id(name)
-            `)
-            .eq('status', 'available')
-            .order('created_at', { ascending: false })
+          const availableTasks = await ReplitDB.getTasksByStatus('available')
+          
+          // Get poster names for each task
+          const tasksWithNames = await Promise.all(
+            availableTasks.map(async (task) => {
+              const poster = await ReplitDB.getUserById(task.poster_id)
+              return {
+                ...task,
+                poster_name: poster?.name || 'Unknown User'
+              }
+            })
+          )
 
-          if (error) {
-            console.error('Error loading tasks:', error)
-            // Fallback to sample data if Supabase fails
-            const { tasks } = get()
-            if (tasks.length === 0) {
-              set({ tasks: generateSampleTasks() })
-            }
-            return
-          }
+          // Sort by created_at descending
+          tasksWithNames.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-          const formattedTasks = data.map(task => ({
-            ...task,
-            poster_name: task.poster?.name || 'Unknown User'
-          }))
-
-          set({ tasks: formattedTasks })
+          set({ tasks: tasksWithNames })
         } catch (err) {
           console.error('Failed to load tasks:', err)
           // Fallback to sample data

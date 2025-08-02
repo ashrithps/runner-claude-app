@@ -1,0 +1,37 @@
+run = "npm run dev"
+entrypoint = "src/app/page.tsx"
+
+[nix]
+channel = "stable-23_11"
+
+[env]
+PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
+npm_config_prefix = "/home/runner/$REPL_SLUG/.config/npm/node_global"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+
+[languages]
+[languages.javascript]
+pattern = "**/*.{js,jsx}"
+syntax = "javascript"
+
+[languages.typescript]
+pattern = "**/*.{ts,tsx}"
+syntax = "typescript"
+
+[languages.json]
+pattern = "**/*.json"
+syntax = "json"
+
+[languages.css]
+pattern = "**/*.css"
+syntax = "css"
+
+[languages.html]
+pattern = "**/*.html"
+syntax = "html" 

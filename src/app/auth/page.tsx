@@ -1,22 +1,21 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, ArrowRight, CheckCircle, Loader2, ExternalLink } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { Mail, KeyRound, CheckCircle, Loader2, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
+import { ClientAuth } from '@/lib/client-auth'
 
-type AuthStep = 'email' | 'sent' | 'profile'
+type AuthStep = 'email' | 'otp' | 'profile'
 
 function AuthPageContent() {
-  const searchParams = useSearchParams()
   const [step, setStep] = useState<AuthStep>('email')
   const [email, setEmail] = useState('')
+  const [otp, setOTP] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isNewUser, setIsNewUser] = useState(false)
@@ -33,223 +32,80 @@ function AuthPageContent() {
   const router = useRouter()
   const { setUser } = useAppStore()
 
-  // Handle URL parameters (from callback)
+  // Check if user is already authenticated
   useEffect(() => {
-    const stepParam = searchParams.get('step')
-    const emailParam = searchParams.get('email')
-    const errorParam = searchParams.get('error')
-    const code = searchParams.get('code')
-
-    if (errorParam) {
-      setError('Authentication failed. Please try again.')
-    }
-
-    if (stepParam === 'profile' && emailParam) {
-      setStep('profile')
-      setEmail(decodeURIComponent(emailParam))
-      setIsNewUser(true)
-    }
-
-    // Handle magic link code
-    if (code) {
-      handleMagicLinkCode(code)
-    }
-  }, [searchParams])
-
-  const handleMagicLinkCode = async (code: string) => {
-    try {
-      setIsLoading(true)
-      
-      // Exchange the code for a session
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-      
-      if (error) {
-        console.error('Auth code exchange error:', error)
-        setError('Authentication failed. Please try again.')
-        return
-      }
-
-      if (data.session) {
-        // Check if user profile exists
-        const { data: userProfile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .single()
-
-        if (profileError || !userProfile) {
-          // New user, need to create profile
-          setIsNewUser(true)
-          setStep('profile')
-          if (data.session.user.email) {
-            setEmail(data.session.user.email)
-          }
-        } else {
-          // Existing user, log them in
-          setUser({
-            id: userProfile.id,
-            email: userProfile.email,
-            name: userProfile.name,
-            tower: userProfile.tower,
-            flat: userProfile.flat,
-            mobile: userProfile.mobile,
-            available_for_tasks: userProfile.available_for_tasks,
-            email_notifications: userProfile.email_notifications,
-            created_at: userProfile.created_at,
-            updated_at: userProfile.updated_at
-          })
-          router.push('/available-tasks')
-        }
-      }
-    } catch (err) {
-      console.error('Magic link handling error:', err)
-      setError('Authentication failed. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Check for auth state changes (when user clicks magic link)
-  useEffect(() => {
-    // Check if user is already authenticated
-    const checkCurrentUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        // User is already logged in, check profile
-        const { data: userProfile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileError || !userProfile) {
-          setIsNewUser(true)
-          setStep('profile')
-        } else {
-          setUser({
-            id: userProfile.id,
-            email: userProfile.email,
-            name: userProfile.name,
-            tower: userProfile.tower,
-            flat: userProfile.flat,
-            mobile: userProfile.mobile,
-            available_for_tasks: userProfile.available_for_tasks,
-            email_notifications: userProfile.email_notifications,
-            created_at: userProfile.created_at,
-            updated_at: userProfile.updated_at
-          })
-          router.push('/available-tasks')
-        }
+    const checkAuth = async () => {
+      const result = await ClientAuth.getCurrentUser()
+      if (result.user) {
+        setUser(result.user)
+        router.push('/available-tasks')
       }
     }
-
-    checkCurrentUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Check if user profile exists
-        const { data: userProfile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileError || !userProfile) {
-          // New user, need to create profile
-          setIsNewUser(true)
-          setStep('profile')
-          if (session.user.email) {
-            setEmail(session.user.email)
-          }
-        } else {
-          // Existing user, log them in
-          setUser({
-            id: userProfile.id,
-            email: userProfile.email,
-            name: userProfile.name,
-            tower: userProfile.tower,
-            flat: userProfile.flat,
-            mobile: userProfile.mobile,
-            available_for_tasks: userProfile.available_for_tasks,
-            email_notifications: userProfile.email_notifications,
-            created_at: userProfile.created_at,
-            updated_at: userProfile.updated_at
-          })
-          router.push('/available-tasks')
-        }
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    
+    checkAuth()
   }, [router, setUser])
 
-  const handleSendMagicLink = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
+    const result = await ClientAuth.sendOTP(email)
+    
+    if (result.success) {
+      setStep('otp')
+    } else {
+      setError(result.error || 'Failed to send OTP')
+    }
+    
+    setIsLoading(false)
+  }
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
 
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      })
-
-      if (error) {
-        setError(error.message)
+    const result = await ClientAuth.verifyOTP(email, otp)
+    
+    if (result.success) {
+      if (result.isNewUser) {
+        setIsNewUser(true)
+        setStep('profile')
       } else {
-        setStep('sent')
+        setUser(result.user!)
+        router.push('/available-tasks')
       }
-    } catch (err) {
-      setError('Failed to send magic link. Please try again.')
-    } finally {
-      setIsLoading(false)
+    } else {
+      setError(result.error || 'Invalid OTP')
     }
+    
+    setIsLoading(false)
   }
-
 
   const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
 
-    try {
-      const { data: authData } = await supabase.auth.getUser()
-      
-      if (!authData.user) {
-        setError('Authentication session expired. Please start over.')
+    const result = await ClientAuth.updateProfile(profileData)
+    
+    if (result.success) {
+      setUser(result.user!)
+      router.push('/available-tasks')
+    } else {
+      if (result.error === 'Not authenticated') {
+        setError('Session expired. Please start over.')
         setStep('email')
-        return
-      }
-
-      const newUser = {
-        id: authData.user.id,
-        email: email,
-        ...profileData
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .insert(newUser)
-
-      if (error) {
-        setError(error.message)
       } else {
-        setUser({
-          ...newUser,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        router.push('/available-tasks')
+        setError(result.error || 'Failed to create profile')
       }
-    } catch (err) {
-      setError('Failed to create profile. Please try again.')
-    } finally {
-      setIsLoading(false)
     }
+    
+    setIsLoading(false)
   }
+
+
 
   const handleProfileInputChange = (field: string, value: string | boolean) => {
     setProfileData(prev => ({ ...prev, [field]: value }))
@@ -261,12 +117,12 @@ function AuthPageContent() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
             {step === 'email' && '🏠 Welcome to Runner'}
-            {step === 'sent' && '📧 Check Your Email'}
+            {step === 'otp' && '🔐 Enter Verification Code'}
             {step === 'profile' && '👤 Complete Your Profile'}
           </CardTitle>
           <p className="text-gray-600 mt-2">
             {step === 'email' && 'Enter your email to get started'}
-            {step === 'sent' && 'Click the magic link we sent to your email to continue'}
+            {step === 'otp' && 'Enter the 4-digit code we sent to your email'}
             {step === 'profile' && 'Let your neighbors know who you are'}
           </p>
         </CardHeader>
@@ -278,7 +134,7 @@ function AuthPageContent() {
           )}
 
           {step === 'email' && (
-            <form onSubmit={handleSendMagicLink} className="space-y-4">
+            <form onSubmit={handleSendOTP} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
@@ -302,48 +158,77 @@ function AuthPageContent() {
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <Send className="h-4 w-4 mr-2" />
                 )}
-                Send Magic Link
+                Send Verification Code
               </Button>
             </form>
           )}
 
-          {step === 'sent' && (
-            <div className="space-y-4 text-center">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <Mail className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-blue-800 font-medium">Magic link sent!</p>
+          {step === 'otp' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <KeyRound className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-blue-800 font-medium">Code sent!</p>
                 <p className="text-blue-600 text-sm mt-1">
-                  Check your email and click the link to continue
+                  Check your email for the 4-digit verification code
                 </p>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 text-center">
                 <p>Sent to: <strong>{email}</strong></p>
-                <p className="mt-2">The link will expire in 1 hour</p>
+                <p className="mt-2">The code will expire in 10 minutes</p>
               </div>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setStep('email')}
-              >
-                Use Different Email
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full"
-                onClick={() => handleSendMagicLink({ preventDefault: () => {} } as React.FormEvent)}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Mail className="h-4 w-4 mr-2" />
-                )}
-                Resend Magic Link
-              </Button>
+              <form onSubmit={handleVerifyOTP} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Verification Code</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOTP(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                    placeholder="1234"
+                    className="text-center text-2xl font-mono tracking-widest"
+                    maxLength={4}
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={isLoading || otp.length !== 4}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Verify Code
+                </Button>
+              </form>
+              <div className="flex space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => setStep('email')}
+                >
+                  Change Email
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={handleSendOTP}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Resend Code
+                </Button>
+              </div>
             </div>
           )}
 
