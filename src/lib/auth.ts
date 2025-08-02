@@ -1,7 +1,19 @@
 import { Resend } from 'resend'
 import { DatabaseOperations } from './db-operations'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+// Lazy initialization to avoid build-time errors
+let resend: Resend | null = null
+
+function getResendClient(): Resend {
+  if (!resend) {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY environment variable is required')
+    }
+    resend = new Resend(apiKey)
+  }
+  return resend
+}
 
 export class AuthService {
   // Generate a 4-digit OTP
@@ -18,7 +30,7 @@ export class AuthService {
       await DatabaseOperations.createOTPSession(email, otp, 10)
       
       // Send email via Resend
-      const { error } = await resend.emails.send({
+      const { error } = await getResendClient().emails.send({
         from: process.env.FROM_EMAIL || 'noreply@runner.community',
         to: email,
         subject: 'Your Runner App Login Code',
