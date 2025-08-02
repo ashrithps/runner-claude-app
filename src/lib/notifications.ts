@@ -1,5 +1,5 @@
-import { supabase } from './supabase'
-import type { Notification, Task, User } from './supabase'
+import { ReplitDB } from './replitdb'
+import type { Notification, Task, User } from './replitdb'
 
 export type NotificationType = 'task_assigned' | 'task_completed' | 'task_cancelled'
 
@@ -21,17 +21,11 @@ export class NotificationService {
   // Create notification in database
   static async createNotification(data: NotificationData): Promise<Notification | null> {
     try {
-      const { data: notification, error } = await supabase
-        .from('notifications')
-        .insert(data)
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error creating notification:', error)
-        return null
-      }
-
+      const notification = await ReplitDB.createNotification({
+        ...data,
+        read: false,
+        sent_via_email: false
+      })
       return notification
     } catch (error) {
       console.error('Failed to create notification:', error)
@@ -206,11 +200,8 @@ export class NotificationService {
       })
 
       // Update notification to mark as sent via email
-      if (emailSent) {
-        await supabase
-          .from('notifications')
-          .update({ sent_via_email: true })
-          .eq('id', notification.id)
+      if (emailSent && notification.id) {
+        await ReplitDB.markNotificationAsRead(notification.id)
       }
     } catch (error) {
       console.error('Error in notifyTaskAssigned:', error)
@@ -246,11 +237,8 @@ export class NotificationService {
       })
 
       // Update notification to mark as sent via email
-      if (emailSent) {
-        await supabase
-          .from('notifications')
-          .update({ sent_via_email: true })
-          .eq('id', notification.id)
+      if (emailSent && notification.id) {
+        await ReplitDB.markNotificationAsRead(notification.id)
       }
     } catch (error) {
       console.error('Error in notifyTaskCompleted:', error)
@@ -260,18 +248,8 @@ export class NotificationService {
   // Get user notifications
   static async getUserNotifications(userId: string): Promise<Notification[]> {
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching notifications:', error)
-        return []
-      }
-
-      return data || []
+      const notifications = await ReplitDB.getNotificationsByUserId(userId)
+      return notifications
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
       return []
@@ -281,17 +259,8 @@ export class NotificationService {
   // Mark notification as read
   static async markAsRead(notificationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId)
-
-      if (error) {
-        console.error('Error marking notification as read:', error)
-        return false
-      }
-
-      return true
+      const success = await ReplitDB.markNotificationAsRead(notificationId)
+      return success
     } catch (error) {
       console.error('Failed to mark notification as read:', error)
       return false
