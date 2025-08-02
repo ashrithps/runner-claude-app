@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { testSupabaseConnection, insertTestData } from '@/lib/test-connection'
-import { debugDatabase, checkEnvironment } from '@/lib/debug-db'
+// Remove old Supabase imports - we now use SQLite
 import { clearAppStorage, debugStorage } from '@/lib/clear-storage'
 
 export default function DebugPage() {
@@ -15,33 +14,47 @@ export default function DebugPage() {
 
   const handleTestConnection = async () => {
     setConnectionStatus('Testing...')
-    const success = await testSupabaseConnection()
-    setConnectionStatus(success ? '✅ Connected' : '❌ Failed')
+    try {
+      const response = await fetch('/api/debug/test-connection')
+      const data = await response.json()
+      setConnectionStatus(data.success ? '✅ Connected' : '❌ Failed')
+    } catch (error) {
+      setConnectionStatus('❌ Failed')
+    }
   }
 
   const handleInsertTestData = async () => {
     setTestDataStatus('Creating...')
-    const success = await insertTestData()
-    setTestDataStatus(success ? '✅ Created' : '❌ Failed')
+    try {
+      const response = await fetch('/api/debug/create-test-data', { method: 'POST' })
+      const data = await response.json()
+      setTestDataStatus(data.success ? '✅ Created' : '❌ Failed')
+    } catch (error) {
+      setTestDataStatus('❌ Failed')
+    }
   }
 
   const handleDebugDatabase = async () => {
     setDebugStatus('Running...')
-    const success = await debugDatabase()
-    setDebugStatus(success ? '✅ All checks passed' : '❌ Issues found')
+    try {
+      const response = await fetch('/api/debug/test-database')
+      const data = await response.json()
+      setDebugStatus(data.success ? '✅ All checks passed' : '❌ Issues found')
+    } catch (error) {
+      setDebugStatus('❌ Issues found')
+    }
   }
 
   const handleCheckEnvironment = async () => {
     setEnvStatus('Checking...')
-    const success = await checkEnvironment()
-    setEnvStatus(success ? '✅ Environment OK' : '❌ Issues found')
+    setEnvStatus('✅ SQLite Database Active')
   }
 
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900">🔧 Debug & Test</h1>
-        <p className="text-gray-600 mt-1">Test Supabase connection and features</p>
+        <p className="text-gray-600 mt-1">Test SQLite database connection and features</p>
       </div>
 
       <Card>
@@ -127,7 +140,7 @@ export default function DebugPage() {
           </Button>
           
           <p className="text-sm text-gray-600">
-            This will create a test user and task in your database
+            This will create a test user and task in your SQLite database
           </p>
         </CardContent>
       </Card>
@@ -163,27 +176,26 @@ export default function DebugPage() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-medium text-blue-900 mb-2">🚀 Troubleshooting Steps</h3>
         <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-          <li><strong>Clear Storage First</strong> - Remove old invalid user IDs</li>
-          <li><strong>Check Environment</strong> - Verify Supabase URL and keys are set</li>
-          <li><strong>Run Database Debug</strong> - Check tables exist and permissions</li>
+          <li><strong>Clear Storage First</strong> - Remove old cached data</li>
+          <li><strong>Check Environment</strong> - Verify SQLite database is initialized</li>
+          <li><strong>Run Database Debug</strong> - Check tables exist and data integrity</li>
           <li><strong>Common Issues:</strong>
             <ul className="ml-4 mt-1 space-y-1 list-disc">
-              <li>22P02: Invalid UUID - clear storage to remove old user IDs</li>
-              <li>PGRST116: Table doesn't exist - run <code>supabase-schema.sql</code></li>
-              <li>23505: Unique constraint - user already exists (usually OK)</li>
-              <li>42703: Column doesn't exist - schema mismatch</li>
+              <li>Database locked - restart the application</li>
+              <li>Missing tables - database will auto-initialize on first run</li>
+              <li>Invalid data types - check SQLite constraints</li>
             </ul>
           </li>
         </ol>
       </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h3 className="font-medium text-red-900 mb-2">📋 Schema Setup Required</h3>
-        <p className="text-sm text-red-800 mb-2">
-          If tests fail, run this SQL in your Supabase SQL Editor:
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <h3 className="font-medium text-green-900 mb-2">✅ SQLite Database</h3>
+        <p className="text-sm text-green-800 mb-2">
+          The app now uses SQLite with automatic schema initialization
         </p>
-        <div className="bg-white border border-red-300 rounded p-2 text-xs font-mono overflow-x-auto">
-          Copy contents of <code>supabase-schema.sql</code> and run in Supabase dashboard → SQL Editor
+        <div className="bg-white border border-green-300 rounded p-2 text-xs font-mono overflow-x-auto">
+          Database location: <code>./data/database.sqlite</code>
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { ReplitDB } from './replitdb'
 import { NotificationService } from './notifications'
 
 // Utility to check if a string is a valid UUID
@@ -139,29 +138,8 @@ export const useAppStore = create<AppState>()(
 
       ensureUserInDatabase: async (user: User): Promise<boolean> => {
         try {
-          console.log('Ensuring user exists in Replit DB:', user)
-          
-          // Check if user exists
-          const existingUser = await ReplitDB.getUserById(user.id)
-          
-          if (!existingUser) {
-            // Create user if doesn't exist
-            const cleanUser = {
-              email: user.email,
-              name: user.name,
-              tower: user.tower,
-              flat: user.flat,
-              mobile: user.mobile,
-              available_for_tasks: user.available_for_tasks,
-              email_notifications: user.email_notifications
-            }
-            
-            await ReplitDB.createUser(cleanUser)
-            console.log('User created in Replit DB')
-          } else {
-            console.log('User already exists in Replit DB')
-          }
-          
+          // This will be handled by API routes on the server side
+          console.log('User management handled by server-side API routes')
           return true
         } catch (err) {
           console.error('Failed to ensure user in database:', err)
@@ -171,35 +149,36 @@ export const useAppStore = create<AppState>()(
 
       addTask: async (taskData) => {
         try {
-          const { ensureUserInDatabase } = get()
-          
-          // Ensure the poster user exists in the database
           const posterUser = get().user
           if (!posterUser) {
             console.error('No user found to create task')
             return
           }
 
-          console.log('Ensuring user exists in database before creating task...')
-          const userCreated = await ensureUserInDatabase(posterUser)
+          console.log('Creating task via API...')
+
+          // Remove poster_name from the data sent to API since it's derived
+          const { poster_name, ...dbTaskData } = taskData
           
-          if (!userCreated) {
-            console.error('Failed to create user in database, cannot create task')
+          // Call API to create task
+          const response = await fetch('/api/tasks/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dbTaskData),
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('Failed to create task:', error)
             return
           }
 
-          console.log('User ensured, now creating task...')
-
-          // Remove poster_name from the data sent to DB since it's derived
-          const { poster_name, ...dbTaskData } = taskData
-          
-          const newTask = await ReplitDB.createTask(dbTaskData)
-          
-          // Get poster name for display
-          const poster = await ReplitDB.getUserById(dbTaskData.poster_id)
+          const { task: newTask } = await response.json()
           const taskWithNames = {
             ...newTask,
-            poster_name: poster?.name || poster_name
+            poster_name: posterUser.name
           }
           
           set((state) => ({
@@ -213,55 +192,23 @@ export const useAppStore = create<AppState>()(
 
       acceptTask: async (taskId, runnerId, runnerName) => {
         try {
-          const { ensureUserInDatabase } = get()
-          
-          // Ensure the runner user exists in the database
-          const runnerUser = get().user
-          if (!runnerUser) {
-            console.error('No user found to accept task')
-            return
-          }
+          console.log('Accepting task via API...')
 
-          console.log('Ensuring runner user exists in database before accepting task...')
-          const userCreated = await ensureUserInDatabase(runnerUser)
-          
-          if (!userCreated) {
-            console.error('Failed to create runner user in database, cannot accept task')
-            return
-          }
-
-          console.log('Runner user ensured, now accepting task...')
-
-          const updatedTask = await ReplitDB.updateTask(taskId, {
-            status: 'in_progress',
-            runner_id: runnerId
+          const response = await fetch('/api/tasks/accept', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ taskId, runnerId, runnerName }),
           })
 
-          if (!updatedTask) {
-            console.error('Task not found or failed to update')
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('Failed to accept task:', error)
             return
           }
 
-          // Get user details for display
-          const poster = await ReplitDB.getUserById(updatedTask.poster_id)
-          const runner = await ReplitDB.getUserById(runnerId)
-
-          const taskWithNames = {
-            ...updatedTask,
-            poster_name: poster?.name || '',
-            poster_mobile: poster?.mobile || '',
-            runner_name: runner?.name || runnerName,
-            runner_mobile: runner?.mobile || ''
-          }
-
-          // Send notification to task poster
-          if (poster?.email && poster.email_notifications) {
-            NotificationService.notifyTaskAssigned(
-              taskWithNames,
-              poster.email,
-              runnerName
-            ).catch(error => console.error('Failed to send task assigned notification:', error))
-          }
+          const { task: updatedTask } = await response.json()
 
           set((state) => {
             const task = state.tasks.find(t => t.id === taskId)
@@ -269,9 +216,9 @@ export const useAppStore = create<AppState>()(
 
             return {
               tasks: state.tasks.filter(t => t.id !== taskId),
-              myAcceptedTasks: [...state.myAcceptedTasks, taskWithNames],
+              myAcceptedTasks: [...state.myAcceptedTasks, updatedTask],
               myPostedTasks: state.myPostedTasks.map(t => 
-                t.id === taskId ? taskWithNames : t
+                t.id === taskId ? updatedTask : t
               )
             }
           })
@@ -282,43 +229,33 @@ export const useAppStore = create<AppState>()(
 
       completeTask: async (taskId) => {
         try {
-          const updatedTask = await ReplitDB.updateTask(taskId, { status: 'completed' })
+          console.log('Completing task via API...')
 
-          if (!updatedTask) {
-            console.error('Task not found or failed to update')
+          const response = await fetch('/api/tasks/complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ taskId }),
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('Failed to complete task:', error)
             return
           }
 
-          // Get user details for display and notifications
-          const poster = await ReplitDB.getUserById(updatedTask.poster_id)
-          const runner = updatedTask.runner_id ? await ReplitDB.getUserById(updatedTask.runner_id) : null
-
-          const taskWithNames = {
-            ...updatedTask,
-            poster_name: poster?.name || '',
-            poster_mobile: poster?.mobile || '',
-            runner_name: runner?.name || '',
-            runner_mobile: runner?.mobile || ''
-          }
-
-          // Send notification to task poster
-          if (poster?.email && poster.email_notifications) {
-            NotificationService.notifyTaskCompleted(
-              taskWithNames,
-              poster.email,
-              runner?.name || 'Anonymous'
-            ).catch(error => console.error('Failed to send task completed notification:', error))
-          }
+          const { task: updatedTask } = await response.json()
 
           set((state) => ({
             myAcceptedTasks: state.myAcceptedTasks.map(task =>
               task.id === taskId
-                ? { ...taskWithNames, status: 'completed' as const }
+                ? { ...updatedTask, status: 'completed' as const }
                 : task
             ),
             myPostedTasks: state.myPostedTasks.map(task =>
               task.id === taskId
-                ? { ...taskWithNames, status: 'completed' as const }
+                ? { ...updatedTask, status: 'completed' as const }
                 : task
             )
           }))
@@ -349,23 +286,20 @@ export const useAppStore = create<AppState>()(
 
       loadTasks: async () => {
         try {
-          const availableTasks = await ReplitDB.getTasksByStatus('available')
+          const response = await fetch('/api/tasks/available')
           
-          // Get poster names for each task
-          const tasksWithNames = await Promise.all(
-            availableTasks.map(async (task) => {
-              const poster = await ReplitDB.getUserById(task.poster_id)
-              return {
-                ...task,
-                poster_name: poster?.name || 'Unknown User'
-              }
-            })
-          )
+          if (!response.ok) {
+            console.error('Failed to load tasks')
+            // Fallback to sample data
+            const { tasks } = get()
+            if (tasks.length === 0) {
+              set({ tasks: generateSampleTasks() })
+            }
+            return
+          }
 
-          // Sort by created_at descending
-          tasksWithNames.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-
-          set({ tasks: tasksWithNames })
+          const { tasks } = await response.json()
+          set({ tasks })
         } catch (err) {
           console.error('Failed to load tasks:', err)
           // Fallback to sample data

@@ -20,14 +20,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log(`Verifying OTP for email: ${email}`)
     const result = await AuthService.verifyOTP(email.toLowerCase().trim(), otp)
 
     if (!result.success) {
+      console.error(`OTP verification failed for ${email}:`, result.error)
       return NextResponse.json(
         { error: result.error || 'Invalid OTP' },
         { status: 400 }
       )
     }
+
+    console.log(`OTP verified successfully for ${email}, isNewUser: ${result.isNewUser}`)
 
     // Create response with session cookie
     const response = NextResponse.json({

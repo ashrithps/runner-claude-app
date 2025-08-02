@@ -1,11 +1,7 @@
 import { Resend } from 'resend'
-import { ReplitDB } from './replitdb'
+import { DatabaseOperations } from './db-operations'
 
 const resend = new Resend(process.env.RESEND_API_KEY!)
-
-// Simple in-memory session store for demo purposes
-// In production, you'd use Redis or a proper session store
-const sessions = new Map<string, { userId: string, email: string, expiresAt: Date }>()
 
 export class AuthService {
   // Generate a 4-digit OTP
@@ -19,7 +15,7 @@ export class AuthService {
       const otp = this.generateOTP()
       
       // Store OTP in database with 10-minute expiration
-      await ReplitDB.createOTPSession(email, otp, 10)
+      await DatabaseOperations.createOTPSession(email, otp, 10)
       
       // Send email via Resend
       const { error } = await resend.emails.send({
@@ -70,18 +66,18 @@ export class AuthService {
   }> {
     try {
       // Verify OTP
-      const isValid = await ReplitDB.verifyOTP(email, otp)
+      const isValid = await DatabaseOperations.verifyOTP(email, otp)
       if (!isValid) {
         return { success: false, error: 'Invalid or expired OTP' }
       }
 
       // Check if user exists
-      let user = await ReplitDB.getUserByEmail(email)
+      let user = DatabaseOperations.getUserByEmail(email)
       let isNewUser = false
 
       if (!user) {
         // Create new user
-        user = await ReplitDB.createUser({
+        user = await DatabaseOperations.createUser({
           email,
           name: '',
           tower: '',
@@ -93,22 +89,15 @@ export class AuthService {
         isNewUser = true
       }
 
-      // Create session
-      const sessionId = this.generateSessionId()
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      
-      sessions.set(sessionId, {
-        userId: user.id,
-        email: user.email,
-        expiresAt
-      })
+      // Create session in database
+      const sessionData = await DatabaseOperations.createSession(user.id, user.email, 24)
 
       // Clean up OTP session
-      await ReplitDB.deleteOTPSession(email)
+      DatabaseOperations.deleteOTPSession(email)
 
       return {
         success: true,
-        sessionId,
+        sessionId: sessionData.id,
         user,
         isNewUser
       }
@@ -118,31 +107,14 @@ export class AuthService {
     }
   }
 
-  // Generate session ID
-  static generateSessionId(): string {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36)
-  }
-
   // Validate session
   static validateSession(sessionId: string): { valid: boolean; userId?: string; email?: string } {
-    const session = sessions.get(sessionId)
-    if (!session) return { valid: false }
-
-    if (new Date() > session.expiresAt) {
-      sessions.delete(sessionId)
-      return { valid: false }
-    }
-
-    return {
-      valid: true,
-      userId: session.userId,
-      email: session.email
-    }
+    return DatabaseOperations.validateSession(sessionId)
   }
 
   // Invalidate session (logout)
   static invalidateSession(sessionId: string): void {
-    sessions.delete(sessionId)
+    DatabaseOperations.deleteSession(sessionId)
   }
 
   // Get user from session
@@ -150,17 +122,13 @@ export class AuthService {
     const sessionInfo = this.validateSession(sessionId)
     if (!sessionInfo.valid || !sessionInfo.userId) return null
 
-    return await ReplitDB.getUserById(sessionInfo.userId)
+    return DatabaseOperations.getUserById(sessionInfo.userId)
   }
 
   // Clean up expired sessions (call periodically)
   static cleanupExpiredSessions(): void {
-    const now = new Date()
-    for (const [sessionId, session] of sessions.entries()) {
-      if (now > session.expiresAt) {
-        sessions.delete(sessionId)
-      }
-    }
+    DatabaseOperations.cleanupExpiredSessions()
+    DatabaseOperations.cleanupExpiredOTPSessions()
   }
 }
 

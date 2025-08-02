@@ -21,24 +21,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const updates = await request.json()
+    const taskData = await request.json()
 
-    // Update user in database
-    const updatedUser = await DatabaseOperations.updateUser(sessionInfo.userId, updates)
+    // Ensure the poster_id matches the session user
+    taskData.poster_id = sessionInfo.userId
 
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
+    // Create task in database
+    const newTask = await DatabaseOperations.createTask(taskData)
 
-    return NextResponse.json({ user: updatedUser })
+    return NextResponse.json({ task: newTask })
 
   } catch (error) {
-    console.error('Update user API error:', error)
+    console.error('Create task API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create task' },
       { status: 500 }
     )
   }

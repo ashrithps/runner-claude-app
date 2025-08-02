@@ -21,15 +21,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log(`Sending OTP to email: ${email}`)
     const result = await AuthService.sendOTP(email.toLowerCase().trim())
 
     if (!result.success) {
+      console.error(`Failed to send OTP to ${email}:`, result.error)
       return NextResponse.json(
         { error: result.error || 'Failed to send OTP' },
         { status: 500 }
       )
     }
 
+    console.log(`OTP sent successfully to ${email}`)
     return NextResponse.json({ 
       success: true,
       message: 'OTP sent successfully'
