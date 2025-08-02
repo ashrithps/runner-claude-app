@@ -15,7 +15,7 @@ export class DatabaseOperations {
     
     stmt.run(
       id, userData.email, userData.name, userData.tower, userData.flat,
-      userData.mobile, userData.available_for_tasks, userData.email_notifications,
+      userData.mobile, userData.available_for_tasks ? 1 : 0, userData.email_notifications ? 1 : 0,
       now, now
     )
     
@@ -45,7 +45,14 @@ export class DatabaseOperations {
     if (updateFields.length === 0) return existingUser
 
     const setClause = updateFields.map(field => `${field} = ?`).join(', ')
-    const values = updateFields.map(field => (updates as any)[field])
+    const values = updateFields.map(field => {
+      const value = (updates as any)[field]
+      // Convert booleans to integers for SQLite
+      if (typeof value === 'boolean') {
+        return value ? 1 : 0
+      }
+      return value
+    })
     values.push(new Date().toISOString()) // updated_at
     values.push(id) // WHERE clause
 
@@ -101,7 +108,14 @@ export class DatabaseOperations {
     if (updateFields.length === 0) return existingTask
 
     const setClause = updateFields.map(field => `${field} = ?`).join(', ')
-    const values = updateFields.map(field => (updates as any)[field])
+    const values = updateFields.map(field => {
+      const value = (updates as any)[field]
+      // Convert booleans to integers for SQLite
+      if (typeof value === 'boolean') {
+        return value ? 1 : 0
+      }
+      return value
+    })
     values.push(new Date().toISOString()) // updated_at
     values.push(id) // WHERE clause
 
@@ -150,7 +164,7 @@ export class DatabaseOperations {
       VALUES (?, ?, ?, ?, ?)
     `)
     
-    stmt.run(email, otp, expiresAt.toISOString(), false, now.toISOString())
+    stmt.run(email, otp, expiresAt.toISOString(), 0, now.toISOString())
     
     return {
       email,
@@ -186,7 +200,7 @@ export class DatabaseOperations {
     
     // Mark as verified
     const stmt = db.prepare('UPDATE otp_sessions SET verified = ? WHERE email = ?')
-    stmt.run(true, email)
+    stmt.run(1, email)
     
     return true
   }
@@ -313,7 +327,7 @@ export class DatabaseOperations {
   static markNotificationAsRead(id: string): boolean {
     const db = database.getDB()
     const stmt = db.prepare('UPDATE notifications SET read = ? WHERE id = ?')
-    const result = stmt.run(true, id)
+    const result = stmt.run(1, id)
     return result.changes > 0
   }
 
