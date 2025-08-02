@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  output: 'standalone',
   serverExternalPackages: ['@supabase/supabase-js', 'better-sqlite3'],
   webpack: (config, { isServer }) => {
     if (!isServer) {

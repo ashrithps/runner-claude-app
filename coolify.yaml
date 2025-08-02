@@ -1,0 +1,30 @@
+name: runner-claude-app
+type: application
+buildPack: nixpacks
+port: 3000
+installCommand: npm install
+buildCommand: npm run build
+startCommand: npm start
+
+# Environment variables
+environment:
+  NODE_ENV: production
+  RESEND_API_KEY: ${RESEND_API_KEY}
+  FROM_EMAIL: ${FROM_EMAIL}
+
+# Persistent storage for SQLite database
+volumes:
+  - /app/data:/app/data
+
+# Health check
+healthCheck:
+  path: /
+  port: 3000
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# Resource limits
+resources:
+  memory: 512Mi
+  cpu: 0.5 
