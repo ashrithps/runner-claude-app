@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialization to avoid build-time errors
+let resend: Resend | null = null
+
+function getResendClient(): Resend {
+  if (!resend) {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY environment variable is required')
+    }
+    resend = new Resend(apiKey)
+  }
+  return resend
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +34,7 @@ export async function POST(request: NextRequest) {
       html,
     }
 
-    const data = await resend.emails.send(emailData)
+    const data = await getResendClient().emails.send(emailData)
 
     return NextResponse.json({ success: true, id: data.data?.id })
   } catch (error) {
