@@ -18,7 +18,8 @@
       "mcp__supabase__execute_sql",
       "mcp__supabase__get_advisors",
       "Bash(NEXT_DEBUG=1 npm run dev)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
