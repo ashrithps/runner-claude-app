@@ -1,14 +1,64 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ArrowRight, Users, MapPin, IndianRupee, Clock, CheckCircle, Phone } from 'lucide-react'
+import { ArrowRight, Users, MapPin, IndianRupee, Clock, CheckCircle, Phone, Loader2 } from 'lucide-react'
+import { useAppStore } from '@/lib/store'
 
 export default function Home() {
+  const router = useRouter()
+  const { user, setUser, clearUser } = useAppStore()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me')
+        
+        if (response.ok) {
+          const { user: authenticatedUser } = await response.json()
+          
+          if (authenticatedUser && authenticatedUser.name && authenticatedUser.tower && authenticatedUser.flat) {
+            // User has complete profile, redirect to available tasks
+            setUser(authenticatedUser)
+            router.push('/available-tasks')
+            return
+          } else if (authenticatedUser) {
+            // User authenticated but incomplete profile, redirect to auth
+            setUser(authenticatedUser)
+            router.push('/auth')
+            return
+          }
+        }
+        
+        // User not authenticated, stay on home page
+        clearUser()
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        clearUser()
+      }
+    }
+
+    checkAuth()
+  }, [router, setUser, clearUser])
+
+  // Show loading while checking authentication
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
   return (
-    <div className="space-y-8 pb-8">
+    <div className="min-h-screen bg-gray-50">
+      <main className="pb-8 px-4 pt-8 max-w-md mx-auto space-y-8">
       {/* Hero Section */}
       <div className="text-center space-y-4">
         <div className="text-6xl mb-4">🏃</div>
@@ -17,15 +67,15 @@ export default function Home() {
           Your community task-sharing platform. Help neighbors, earn rewards, build connections.
         </p>
         <div className="flex gap-3 justify-center mt-6">
-          <Link href="/available-tasks">
+          <Link href="/auth">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-              Browse Tasks
+              Get Started
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-          <Link href="/post-task">
+          <Link href="/auth">
             <Button size="lg" variant="outline">
-              Post a Task
+              Join Community
             </Button>
           </Link>
         </div>
@@ -134,14 +184,15 @@ export default function Home() {
         <CardContent className="pt-6 text-center">
           <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to get started?</h3>
           <p className="text-gray-600 mb-4">Join your community and start helping each other today!</p>
-          <Link href="/available-tasks">
+          <Link href="/auth">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-              Explore Available Tasks
+              Join Your Community
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
         </CardContent>
       </Card>
+      </main>
     </div>
   )
 }

@@ -7,9 +7,10 @@ import { AuthGuard } from '@/components/auth-guard'
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAuthPage = pathname === '/auth'
+  const isHomePage = pathname === '/'
 
-  // If it's the auth page, don't wrap with AuthGuard or show BottomNav
-  if (isAuthPage) {
+  // If it's the auth page or home page, don't wrap with AuthGuard or show BottomNav
+  if (isAuthPage || isHomePage) {
     return <>{children}</>
   }
 
