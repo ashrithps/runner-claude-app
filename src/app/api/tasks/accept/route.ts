@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AuthService } from '@/lib/auth'
 import { DatabaseOperations } from '@/lib/db-operations'
+import { NotificationService } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,51 +59,11 @@ export async function POST(request: NextRequest) {
 
     // Send notification to task poster
     if (poster?.email && poster.email_notifications) {
-      // Send email notification directly without database dependency
-      const emailContent = {
-        subject: `Task Assigned: ${taskWithNames.title}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">🎯 Task Assigned</h2>
-            <p>Hi ${poster.name}!</p>
-            <p><strong>${runnerName}</strong> has accepted your task:</p>
-            
-            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin: 0 0 10px 0; color: #1f2937;">${taskWithNames.title}</h3>
-              <p style="margin: 5px 0;"><strong>Location:</strong> ${taskWithNames.location}</p>
-              <p style="margin: 5px 0;"><strong>Time:</strong> ${new Date(taskWithNames.time).toLocaleString()}</p>
-              <p style="margin: 5px 0;"><strong>Reward:</strong> ₹${taskWithNames.reward}</p>
-              ${taskWithNames.description ? `<p style="margin: 10px 0 0 0;"><strong>Description:</strong> ${taskWithNames.description}</p>` : ''}
-            </div>
-            
-            <p>You can contact ${runnerName} directly via WhatsApp to coordinate the task.</p>
-            
-            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              Best regards,<br>
-              Runner Community App
-            </p>
-          </div>
-        `
-      }
-
-      try {
-        const emailResponse = await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: poster.email,
-            ...emailContent
-          })
-        })
-        
-        if (!emailResponse.ok) {
-          console.error('Failed to send task assigned notification:', await emailResponse.text())
-        } else {
-          console.log('Task assigned notification sent successfully')
-        }
-      } catch (error) {
-        console.error('Failed to send task assigned notification:', error)
-      }
+      NotificationService.notifyTaskAssigned(
+        taskWithNames,
+        poster.email,
+        runner?.name || runnerName
+      ).catch(error => console.error('Failed to send task assigned notification:', error))
     }
 
     return NextResponse.json({ task: taskWithNames })

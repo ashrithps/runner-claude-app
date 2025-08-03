@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const emailData = {
-      from: process.env.FROM_EMAIL || 'Runner App <noreply@runner.example.com>',
+      from: process.env.FROM_EMAIL || 'Runner Community <noreply@runner-app.com>',
       to: [to],
       subject,
       html,
