@@ -1,4 +1,4 @@
-import { database, User, Task, Notification, OTPSession, Session } from './database'
+import { database, User, Task, Notification, OTPSession, Session, Rating } from './database'
 import { v4 as uuidv4 } from 'uuid'
 
 export class DatabaseOperations {
@@ -359,12 +359,68 @@ export class DatabaseOperations {
   static clearAllData(): void {
     const db = database.getDB()
     db.exec(`
+      DELETE FROM ratings;
       DELETE FROM notifications;
       DELETE FROM sessions;
       DELETE FROM otp_sessions;
       DELETE FROM tasks;
       DELETE FROM users;
     `)
+  }
+
+  // Rating operations
+  static async createRating(ratingData: Omit<Rating, 'id' | 'created_at'>): Promise<Rating> {
+    const db = database.getDB()
+    const id = uuidv4()
+    const now = new Date().toISOString()
+    
+    const stmt = db.prepare(`
+      INSERT INTO ratings (id, task_id, rater_id, rated_id, rating, feedback, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `)
+    
+    stmt.run(id, ratingData.task_id, ratingData.rater_id, ratingData.rated_id, 
+             ratingData.rating, ratingData.feedback || null, now)
+    
+    return {
+      id,
+      ...ratingData,
+      created_at: now
+    }
+  }
+
+  static getRatingsByTaskId(taskId: string): Rating[] {
+    const db = database.getDB()
+    const stmt = db.prepare('SELECT * FROM ratings WHERE task_id = ? ORDER BY created_at DESC')
+    return stmt.all(taskId) as Rating[]
+  }
+
+  static getRatingsByUserId(userId: string): Rating[] {
+    const db = database.getDB()
+    const stmt = db.prepare('SELECT * FROM ratings WHERE rated_id = ? ORDER BY created_at DESC')
+    return stmt.all(userId) as Rating[]
+  }
+
+  static getRatingForTask(taskId: string, raterId: string, ratedId: string): Rating | null {
+    const db = database.getDB()
+    const stmt = db.prepare('SELECT * FROM ratings WHERE task_id = ? AND rater_id = ? AND rated_id = ?')
+    const rating = stmt.get(taskId, raterId, ratedId) as Rating | undefined
+    return rating || null
+  }
+
+  static getUserAverageRating(userId: string): { average: number; count: number } {
+    const db = database.getDB()
+    const stmt = db.prepare('SELECT AVG(rating) as average, COUNT(*) as count FROM ratings WHERE rated_id = ?')
+    const result = stmt.get(userId) as { average: number; count: number } | undefined
+    return result || { average: 0, count: 0 }
+  }
+
+  static getTaskRatings(taskId: string): { posterRating?: Rating; runnerRating?: Rating } {
+    const ratings = this.getRatingsByTaskId(taskId)
+    const posterRating = ratings.find(r => r.rater_id !== r.rated_id) // Rating given by runner to poster
+    const runnerRating = ratings.find(r => r.rater_id !== r.rated_id) // Rating given by poster to runner
+    
+    return { posterRating, runnerRating }
   }
 }
 

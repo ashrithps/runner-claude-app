@@ -68,10 +68,21 @@ Let me know if you have any questions or need to discuss any details!
 Thanks!`
   }
 
+  // Custom encoder that preserves emojis but encodes other special characters
+  static encodeWhatsAppMessage(message: string): string {
+    // Only encode specific characters that could break URLs, but preserve emojis
+    return message
+      .replace(/#/g, '%23')  // Hash
+      .replace(/&/g, '%26')  // Ampersand
+      .replace(/\+/g, '%2B') // Plus
+      .replace(/=/g, '%3D')  // Equals
+      // Leave emojis and other Unicode characters unencoded
+  }
+
   // Create WhatsApp URL
   static createWhatsAppUrl(phoneNumber: string, message: string): string {
     const cleanedNumber = this.cleanPhoneNumber(phoneNumber)
-    const encodedMessage = encodeURIComponent(message)
+    const encodedMessage = this.encodeWhatsAppMessage(message)
     
     // Use wa.me for universal WhatsApp links
     return `https://wa.me/${cleanedNumber}?text=${encodedMessage}`

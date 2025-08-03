@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { WhatsAppService } from '@/lib/whatsapp'
+import { TaskRating } from '@/components/rating-system'
 
 export default function MyTasksPage() {
   const { myPostedTasks, myAcceptedTasks, completeTask, user, loadMyTasks } = useAppStore()
@@ -198,6 +199,12 @@ export default function MyTasksPage() {
                     )}
                   </div>
                 </CardContent>
+                
+                {task.status === 'completed' && (
+                  <div className="p-4 border-t">
+                    <TaskRating task={task} />
+                  </div>
+                )}
               </Card>
             ))
           )}
@@ -278,6 +285,12 @@ export default function MyTasksPage() {
                     )}
                   </div>
                 </CardContent>
+                
+                {task.status === 'completed' && (
+                  <div className="p-4 border-t">
+                    <TaskRating task={task} />
+                  </div>
+                )}
               </Card>
             ))
           )}

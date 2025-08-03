@@ -68,6 +68,16 @@ export type Session = {
   created_at: string
 }
 
+export type Rating = {
+  id: string
+  task_id: string
+  rater_id: string
+  rated_id: string
+  rating: number // 1-5 stars
+  feedback?: string
+  created_at: string
+}
+
 // Database connection
 class SQLiteDatabase {
   private static instance: SQLiteDatabase | null = null
@@ -180,6 +190,20 @@ class SQLiteDatabase {
           FOREIGN KEY (user_id) REFERENCES users(id)
         );
 
+        CREATE TABLE IF NOT EXISTS ratings (
+          id TEXT PRIMARY KEY,
+          task_id TEXT NOT NULL,
+          rater_id TEXT NOT NULL,
+          rated_id TEXT NOT NULL,
+          rating INTEGER CHECK(rating >= 1 AND rating <= 5) NOT NULL,
+          feedback TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (task_id) REFERENCES tasks(id),
+          FOREIGN KEY (rater_id) REFERENCES users(id),
+          FOREIGN KEY (rated_id) REFERENCES users(id),
+          UNIQUE(task_id, rater_id, rated_id)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
         CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
         CREATE INDEX IF NOT EXISTS idx_tasks_poster_id ON tasks(poster_id);
@@ -187,6 +211,9 @@ class SQLiteDatabase {
         CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
         CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
         CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+        CREATE INDEX IF NOT EXISTS idx_ratings_task_id ON ratings(task_id);
+        CREATE INDEX IF NOT EXISTS idx_ratings_rater_id ON ratings(rater_id);
+        CREATE INDEX IF NOT EXISTS idx_ratings_rated_id ON ratings(rated_id);
       `)
 
       console.log('Database schema initialized successfully')

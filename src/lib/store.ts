@@ -27,6 +27,16 @@ export interface Task {
   updated_at: string
 }
 
+export interface Rating {
+  id: string
+  task_id: string
+  rater_id: string
+  rated_id: string
+  rating: number // 1-5 stars
+  feedback?: string
+  created_at: string
+}
+
 export interface User {
   id: string
   email: string
@@ -58,6 +68,14 @@ interface AppState {
   loadMyTasks: () => Promise<void>
   signOut: () => Promise<void>
   refreshUserData: () => Promise<void>
+  
+  // Computed values for task counts
+  getTaskCounts: () => {
+    availableTasks: number
+    myInProgressTasks: number
+    myPendingPostedTasks: number
+    totalActiveMyTasks: number
+  }
 }
 
 // Generate sample data
@@ -334,6 +352,27 @@ export const useAppStore = create<AppState>()(
           }
         } catch (err) {
           console.error('Failed to load my tasks:', err)
+        }
+      },
+
+      getTaskCounts: () => {
+        const state = get()
+        
+        const availableTasks = state.tasks.filter(task => task.status === 'available').length
+        
+        const myInProgressTasks = state.myAcceptedTasks.filter(task => task.status === 'in_progress').length
+        
+        const myPendingPostedTasks = state.myPostedTasks.filter(task => 
+          task.status === 'available' || task.status === 'in_progress'
+        ).length
+        
+        const totalActiveMyTasks = myInProgressTasks + myPendingPostedTasks
+        
+        return {
+          availableTasks,
+          myInProgressTasks,
+          myPendingPostedTasks,
+          totalActiveMyTasks
         }
       }
     }),
