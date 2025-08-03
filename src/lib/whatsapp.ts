@@ -68,30 +68,49 @@ Let me know if you have any questions or need to discuss any details!
 Thanks!`
   }
 
-  // Custom encoder that preserves emojis but encodes other special characters
-  static encodeWhatsAppMessage(message: string): string {
-    // Only encode specific characters that could break URLs, but preserve emojis
-    return message
-      .replace(/#/g, '%23')  // Hash
-      .replace(/&/g, '%26')  // Ampersand
-      .replace(/\+/g, '%2B') // Plus
-      .replace(/=/g, '%3D')  // Equals
-      // Leave emojis and other Unicode characters unencoded
-  }
-
-  // Create WhatsApp URL
+  // Create WhatsApp URL with proper intent handling for emojis
   static createWhatsAppUrl(phoneNumber: string, message: string): string {
     const cleanedNumber = this.cleanPhoneNumber(phoneNumber)
-    const encodedMessage = this.encodeWhatsAppMessage(message)
     
-    // Use wa.me for universal WhatsApp links
-    return `https://wa.me/${cleanedNumber}?text=${encodedMessage}`
+    // Detect device type for appropriate URL scheme
+    const isAndroid = /Android/i.test(navigator.userAgent)
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    
+    if (isAndroid) {
+      // Android: Use intent URL with proper encoding - this preserves emojis
+      const encodedMessage = encodeURIComponent(message)
+      return `intent://send?phone=${cleanedNumber}&text=${encodedMessage}#Intent;scheme=whatsapp;package=com.whatsapp;end`
+    } else if (isIOS) {
+      // iOS: Use whatsapp:// scheme with URL encoding
+      const encodedMessage = encodeURIComponent(message)
+      return `whatsapp://send?phone=${cleanedNumber}&text=${encodedMessage}`
+    } else {
+      // Desktop/Web: Use api.whatsapp.com which handles emojis better than wa.me
+      const encodedMessage = encodeURIComponent(message)
+      return `https://api.whatsapp.com/send?phone=${cleanedNumber}&text=${encodedMessage}`
+    }
   }
 
   // Open WhatsApp with message
   static openWhatsApp(phoneNumber: string, message: string): void {
     const url = this.createWhatsAppUrl(phoneNumber, message)
-    window.open(url, '_blank')
+    const isAndroid = /Android/i.test(navigator.userAgent)
+    
+    if (isAndroid && url.startsWith('intent://')) {
+      // For Android intents, use location.href instead of window.open
+      try {
+        window.location.href = url
+      } catch {
+        // Fallback to regular web URL if intent fails
+        const cleanedNumber = this.cleanPhoneNumber(phoneNumber)
+        const encodedMessage = encodeURIComponent(message)
+        const fallbackUrl = `https://api.whatsapp.com/send?phone=${cleanedNumber}&text=${encodedMessage}`
+        window.open(fallbackUrl, '_blank')
+      }
+    } else {
+      // For iOS and desktop, use window.open
+      window.open(url, '_blank')
+    }
   }
 
   // Contact task poster (used by task accepter)
