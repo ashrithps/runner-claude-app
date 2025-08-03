@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -8,7 +9,11 @@ import { useAppStore } from '@/lib/store'
 import { WhatsAppService } from '@/lib/whatsapp'
 
 export default function MyTasksPage() {
-  const { myPostedTasks, myAcceptedTasks, completeTask, user } = useAppStore()
+  const { myPostedTasks, myAcceptedTasks, completeTask, user, loadMyTasks } = useAppStore()
+
+  useEffect(() => {
+    loadMyTasks()
+  }, [loadMyTasks])
 
   const handleMarkCompleted = (taskId: string) => {
     completeTask(taskId)

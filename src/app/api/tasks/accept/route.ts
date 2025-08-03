@@ -85,14 +85,24 @@ export async function POST(request: NextRequest) {
         `
       }
 
-      fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: poster.email,
-          ...emailContent
+      try {
+        const emailResponse = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: poster.email,
+            ...emailContent
+          })
         })
-      }).catch(error => console.error('Failed to send task assigned notification:', error))
+        
+        if (!emailResponse.ok) {
+          console.error('Failed to send task assigned notification:', await emailResponse.text())
+        } else {
+          console.log('Task assigned notification sent successfully')
+        }
+      } catch (error) {
+        console.error('Failed to send task assigned notification:', error)
+      }
     }
 
     return NextResponse.json({ task: taskWithNames })

@@ -2,7 +2,6 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { NotificationService } from './notifications'
 
 // Utility to check if a string is a valid UUID
 function isValidUUID(str: string): boolean {
@@ -56,6 +55,7 @@ interface AppState {
   completeTask: (taskId: string) => Promise<void>
   updateTaskStatus: (taskId: string, status: Task['status']) => void
   loadTasks: () => Promise<void>
+  loadMyTasks: () => Promise<void>
   signOut: () => Promise<void>
   refreshUserData: () => Promise<void>
 }
@@ -222,6 +222,9 @@ export const useAppStore = create<AppState>()(
               )
             }
           })
+
+          // Refresh my tasks to get updated status
+          await get().loadMyTasks()
         } catch (err) {
           console.error('Failed to accept task:', err)
         }
@@ -259,6 +262,9 @@ export const useAppStore = create<AppState>()(
                 : task
             )
           }))
+
+          // Refresh my tasks to get updated status
+          await get().loadMyTasks()
         } catch (err) {
           console.error('Failed to complete task:', err)
         }
@@ -307,6 +313,27 @@ export const useAppStore = create<AppState>()(
           if (tasks.length === 0) {
             set({ tasks: generateSampleTasks() })
           }
+        }
+      },
+
+      loadMyTasks: async () => {
+        try {
+          const [postedResponse, acceptedResponse] = await Promise.all([
+            fetch('/api/tasks/my-posted'),
+            fetch('/api/tasks/my-accepted')
+          ])
+
+          if (postedResponse.ok) {
+            const { tasks: postedTasks } = await postedResponse.json()
+            set((state) => ({ ...state, myPostedTasks: postedTasks }))
+          }
+
+          if (acceptedResponse.ok) {
+            const { tasks: acceptedTasks } = await acceptedResponse.json()
+            set((state) => ({ ...state, myAcceptedTasks: acceptedTasks }))
+          }
+        } catch (err) {
+          console.error('Failed to load my tasks:', err)
         }
       }
     }),
