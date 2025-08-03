@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, KeyRound, CheckCircle, Loader2, Send } from 'lucide-react'
+import { Mail, KeyRound, CheckCircle, Loader2, Send, Users, MessageCircle, CreditCard, Shield } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { ClientAuth } from '@/lib/client-auth'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 
 type AuthStep = 'email' | 'otp' | 'profile'
 
@@ -113,19 +114,53 @@ function AuthPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            {step === 'email' && '🏠 Welcome to Runner'}
-            {step === 'otp' && '🔐 Enter Verification Code'}
-            {step === 'profile' && '👤 Complete Your Profile'}
-          </CardTitle>
-          <p className="text-gray-600 mt-2">
-            {step === 'email' && 'Enter your email to get started'}
-            {step === 'otp' && 'Enter the 4-digit code we sent to your email'}
-            {step === 'profile' && 'Let your neighbors know who you are'}
-          </p>
-        </CardHeader>
+      <div className="w-full max-w-md space-y-4">
+        <PWAInstallPrompt />
+        
+        {step === 'email' && (
+          <Card className="border-blue-200">
+            <CardContent className="p-6">
+              <div className="text-center mb-6">
+                <div className="text-4xl mb-3">🏠</div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Runner</h1>
+                <p className="text-gray-600">Your community task-sharing platform</p>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center space-x-3 text-sm">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  <span>Help neighbors with groceries, parcels, and errands</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <CreditCard className="h-5 w-5 text-green-600" />
+                  <span>Earn small rewards paid via UPI</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <MessageCircle className="h-5 w-5 text-purple-600" />
+                  <span>Direct WhatsApp communication</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <Shield className="h-5 w-5 text-orange-600" />
+                  <span>Secure email verification</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">
+              {step === 'email' && 'Get Started'}
+              {step === 'otp' && '🔐 Enter Verification Code'}
+              {step === 'profile' && '👤 Complete Your Profile'}
+            </CardTitle>
+            <p className="text-gray-600 mt-2">
+              {step === 'email' && 'Enter your email to join your community'}
+              {step === 'otp' && 'Enter the 4-digit code we sent to your email'}
+              {step === 'profile' && 'Let your neighbors know who you are'}
+            </p>
+          </CardHeader>
         <CardContent>
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
@@ -294,7 +329,8 @@ function AuthPageContent() {
             </form>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -303,13 +339,15 @@ export default function AuthPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-md">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     }>
       <AuthPageContent />
