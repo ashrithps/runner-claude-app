@@ -1,14 +1,34 @@
 import { v4 as uuidv4 } from 'uuid'
 
+// Interface for better-sqlite3 database
+interface SQLiteDB {
+  prepare(sql: string): SQLiteStatement
+  close(): void
+  exec(sql: string): void
+}
+
+interface SQLiteStatement {
+  run(...params: unknown[]): { changes: number; lastInsertRowid: number }
+  get(...params: unknown[]): unknown
+  all(...params: unknown[]): unknown[]
+}
+
 // Conditionally import better-sqlite3 only on server-side
-let Database: any = null
-let path: any = null
-let fs: any = null
+let Database: ((path: string) => SQLiteDB) | null = null
+let path: { join: (...paths: string[]) => string } | null = null
+let fs: { existsSync: (path: string) => boolean; mkdirSync: (path: string, options?: { recursive?: boolean }) => void } | null = null
 
 if (typeof window === 'undefined') {
-  Database = require('better-sqlite3')
-  path = require('path')
-  fs = require('fs')
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Database = require('better-sqlite3')
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    path = require('path')
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    fs = require('fs')
+  } catch (error) {
+    console.warn('Failed to load server-side dependencies:', error)
+  }
 }
 
 // Database types
@@ -81,7 +101,7 @@ export type Rating = {
 // Database connection
 class SQLiteDatabase {
   private static instance: SQLiteDatabase | null = null
-  private db: any = null
+  private db: SQLiteDB | null = null
 
   private constructor() {
     this.connect()
@@ -339,7 +359,7 @@ class SQLiteDatabase {
   }
 
   // Get database instance
-  getDB(): any {
+  getDB(): SQLiteDB {
     if (!this.db) {
       throw new Error('Database not connected')
     }

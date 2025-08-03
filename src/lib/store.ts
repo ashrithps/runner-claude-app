@@ -16,6 +16,7 @@ export interface Task {
   location: string
   time: string
   reward: number
+  upi_id?: string
   poster_id: string
   poster_name: string
   poster_mobile?: string
@@ -154,7 +155,7 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      ensureUserInDatabase: async (user: User): Promise<boolean> => {
+      ensureUserInDatabase: async (_user: User): Promise<boolean> => {
         try {
           // This will be handled by API routes on the server side
           console.log('User management handled by server-side API routes')
@@ -176,7 +177,7 @@ export const useAppStore = create<AppState>()(
           console.log('Creating task via API...')
 
           // Remove poster_name from the data sent to API since it's derived
-          const { poster_name, ...dbTaskData } = taskData
+          const { poster_name: _, ...dbTaskData } = taskData
           
           // Call API to create task
           const response = await fetch('/api/tasks/create', {

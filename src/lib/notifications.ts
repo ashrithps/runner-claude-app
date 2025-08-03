@@ -1,5 +1,5 @@
 import { ReplitDB } from './replitdb'
-import type { Notification, Task, User } from './replitdb'
+import type { Notification, Task } from './replitdb'
 
 export type NotificationType = 'task_assigned' | 'task_completed' | 'task_cancelled'
 
@@ -59,8 +59,7 @@ export class NotificationService {
   static generateEmailContent(
     type: NotificationType,
     task: Task,
-    assigneeName?: string,
-    posterName?: string
+    assigneeName?: string
   ) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     

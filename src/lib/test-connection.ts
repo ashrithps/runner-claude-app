@@ -25,7 +25,7 @@ export async function testConnection() {
     console.log('✅ Delete operation successful')
 
     // Test list operation
-    const keys = await db.list()
+    await db.list()
     console.log('✅ List operation successful')
 
     // Test database stats

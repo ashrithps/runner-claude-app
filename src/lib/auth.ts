@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { DatabaseOperations } from './db-operations'
+import type { User } from './store'
 
 // Lazy initialization to avoid build-time errors
 let resend: Resend | null = null
@@ -72,7 +73,7 @@ export class AuthService {
   static async verifyOTP(email: string, otp: string): Promise<{ 
     success: boolean; 
     sessionId?: string; 
-    user?: any; 
+    user?: User; 
     isNewUser?: boolean;
     error?: string;
   }> {
@@ -130,7 +131,7 @@ export class AuthService {
   }
 
   // Get user from session
-  static async getUserFromSession(sessionId: string): Promise<any | null> {
+  static async getUserFromSession(sessionId: string): Promise<User | null> {
     const sessionInfo = this.validateSession(sessionId)
     if (!sessionInfo.valid || !sessionInfo.userId) return null
 

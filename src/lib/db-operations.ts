@@ -46,7 +46,7 @@ export class DatabaseOperations {
 
     const setClause = updateFields.map(field => `${field} = ?`).join(', ')
     const values = updateFields.map(field => {
-      const value = (updates as any)[field]
+      const value = (updates as Record<string, unknown>)[field]
       // Convert booleans to integers for SQLite
       if (typeof value === 'boolean') {
         return value ? 1 : 0
@@ -109,7 +109,7 @@ export class DatabaseOperations {
 
     const setClause = updateFields.map(field => `${field} = ?`).join(', ')
     const values = updateFields.map(field => {
-      const value = (updates as any)[field]
+      const value = (updates as Record<string, unknown>)[field]
       // Convert booleans to integers for SQLite
       if (typeof value === 'boolean') {
         return value ? 1 : 0

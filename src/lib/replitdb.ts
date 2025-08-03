@@ -1,9 +1,18 @@
 import { v4 as uuidv4 } from 'uuid'
 
+// Interface for Replit database
+interface ReplitDBInterface {
+  set(key: string, value: unknown): Promise<void>
+  get(key: string): Promise<unknown>
+  delete(key: string): Promise<void>
+  list(prefix?: string): Promise<string[]>
+  keys(): IterableIterator<string>
+}
+
 // Replit Database implementation
 // This uses Replit's built-in database service
 class ReplitDatabase {
-  private db: any = null
+  private db: ReplitDBInterface | Map<string, unknown> | null = null
 
   constructor() {
     // Initialize Replit database
@@ -16,8 +25,8 @@ class ReplitDatabase {
   private async initDatabase() {
     try {
       // Replit provides a global database object
-      if (typeof globalThis !== 'undefined' && (globalThis as any).Database) {
-        this.db = new (globalThis as any).Database()
+      if (typeof globalThis !== 'undefined' && (globalThis as { Database?: new () => ReplitDBInterface }).Database) {
+        this.db = new (globalThis as { Database: new () => ReplitDBInterface }).Database()
       } else {
         // Fallback to in-memory storage for development
         console.warn('Replit Database not available, using in-memory storage')
@@ -29,7 +38,7 @@ class ReplitDatabase {
     }
   }
 
-  async set(key: string, value: any): Promise<void> {
+  async set(key: string, value: unknown): Promise<void> {
     if (!this.db) await this.initDatabase()
     
     try {
@@ -43,7 +52,7 @@ class ReplitDatabase {
     }
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<unknown> {
     if (!this.db) await this.initDatabase()
     
     try {
@@ -89,7 +98,7 @@ class ReplitDatabase {
         // Fallback for in-memory storage
         keys = Array.from(this.db.keys())
         if (prefix) {
-          keys = keys.filter(key => key.startsWith(prefix))
+          keys = keys.filter((key: string) => key.startsWith(prefix))
         }
       }
       return keys || []

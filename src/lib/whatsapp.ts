@@ -1,4 +1,4 @@
-import type { Task, User } from './store'
+import type { Task } from './store'
 
 export class WhatsAppService {
   // Clean phone number to international format

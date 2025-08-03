@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { User, MapPin, Phone, Edit, Save, Mail, LogOut, Bell } from 'lucide-react'
+import { User, MapPin, Phone, Edit, Save, Mail, LogOut } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { createDefaultUser } from '@/lib/utils'
 

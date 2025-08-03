@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { useAppStore } from '@/lib/store'
 import { createDefaultUser } from '@/lib/utils'
 
@@ -19,8 +20,7 @@ export default function PostTaskPage() {
     location: '',
     reward: ''
   })
-  const [selectedDate, setSelectedDate] = useState('')
-  const [selectedTime, setSelectedTime] = useState('')
+  const [selectedDateTime, setSelectedDateTime] = useState<Date | undefined>(undefined)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,19 +33,16 @@ export default function PostTaskPage() {
 
     const currentUser = user || createDefaultUser()
 
-    if (!selectedDate || !selectedTime) {
-      alert('Please select both date and time for the task')
+    if (!selectedDateTime) {
+      alert('Please select date and time for the task')
       return
     }
-
-    // Combine date and time
-    const combinedDateTime = new Date(`${selectedDate}T${selectedTime}`)
     
     const taskData = {
       title: formData.title,
       description: formData.description || undefined,
       location: formData.location,
-      time: combinedDateTime.toISOString(),
+      time: selectedDateTime.toISOString(),
       reward: parseInt(formData.reward),
       poster_id: currentUser.id,
       poster_name: currentUser.name,
@@ -61,8 +58,7 @@ export default function PostTaskPage() {
       location: '',
       reward: ''
     })
-    setSelectedDate('')
-    setSelectedTime('')
+    setSelectedDateTime(undefined)
 
     // Redirect to available tasks
     router.push('/available-tasks')
@@ -120,31 +116,11 @@ export default function PostTaskPage() {
 
             <div className="space-y-2">
               <Label htmlFor="datetime">When needed? *</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="date" className="text-sm text-gray-600">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="time" className="text-sm text-gray-600">Time</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={selectedTime}
-                    onChange={(e) => setSelectedTime(e.target.value)}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-              </div>
+              <DateTimePicker
+                date={selectedDateTime}
+                onDateTimeChange={setSelectedDateTime}
+                placeholder="Pick a date and time"
+              />
               <p className="text-sm text-gray-500">
                 Choose when you need this task completed
               </p>

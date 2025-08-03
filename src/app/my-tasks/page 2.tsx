@@ -3,9 +3,8 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
+import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
-import { WhatsAppService } from '@/lib/whatsapp'
 
 export default function MyTasksPage() {
   const { myPostedTasks, myAcceptedTasks, completeTask } = useAppStore()

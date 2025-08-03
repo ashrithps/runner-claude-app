@@ -27,7 +27,7 @@ export default function AvailableTasksPage() {
     }
 
     loadData()
-  }, [loadTasks])
+  }, [loadTasks, tasks.length])
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -114,7 +114,7 @@ export default function AvailableTasksPage() {
           hour12: true
         })
       }
-    } catch (error) {
+    } catch (_error) {
       return timeString
     }
   }

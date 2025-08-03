@@ -18,7 +18,7 @@ export default function DebugPage() {
       const response = await fetch('/api/debug/test-connection')
       const data = await response.json()
       setConnectionStatus(data.success ? '✅ Connected' : '❌ Failed')
-    } catch (error) {
+    } catch (_error) {
       setConnectionStatus('❌ Failed')
     }
   }
@@ -29,7 +29,7 @@ export default function DebugPage() {
       const response = await fetch('/api/debug/create-test-data', { method: 'POST' })
       const data = await response.json()
       setTestDataStatus(data.success ? '✅ Created' : '❌ Failed')
-    } catch (error) {
+    } catch (_error) {
       setTestDataStatus('❌ Failed')
     }
   }
@@ -40,7 +40,7 @@ export default function DebugPage() {
       const response = await fetch('/api/debug/test-database')
       const data = await response.json()
       setDebugStatus(data.success ? '✅ All checks passed' : '❌ Issues found')
-    } catch (error) {
+    } catch (_error) {
       setDebugStatus('❌ Issues found')
     }
   }

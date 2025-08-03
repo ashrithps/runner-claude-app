@@ -4,8 +4,8 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
-import { useAppStore } from '@/lib/store'
+import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle } from 'lucide-react'
+import { useAppStore, Task } from '@/lib/store'
 import { WhatsAppService } from '@/lib/whatsapp'
 import { TaskRating } from '@/components/rating-system'
 
@@ -20,17 +20,17 @@ export default function MyTasksPage() {
     completeTask(taskId)
   }
 
-  const handleContactPoster = (task: any) => {
+  const handleContactPoster = (task: Task) => {
     if (!user || !task.poster_mobile) return
     WhatsAppService.contactTaskPoster(task, user.name, task.poster_mobile)
   }
 
-  const handleContactRunner = (task: any) => {
+  const handleContactRunner = (task: Task) => {
     if (!user || !task.runner_mobile) return
     WhatsAppService.contactTaskAccepter(task, user.name, task.runner_mobile)
   }
 
-  const handleNotifyCompletion = (task: any) => {
+  const handleNotifyCompletion = (task: Task) => {
     if (!task.poster_mobile) return
     WhatsAppService.notifyTaskCompletion(task, task.poster_mobile)
   }
@@ -78,7 +78,7 @@ export default function MyTasksPage() {
           hour12: true
         })
       }
-    } catch (error) {
+    } catch (_error) {
       return timeString
     }
   }

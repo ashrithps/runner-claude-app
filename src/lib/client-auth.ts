@@ -1,4 +1,5 @@
 // Client-side authentication utilities
+import type { User } from './store'
 
 export class ClientAuth {
   // Send OTP to email
@@ -19,7 +20,7 @@ export class ClientAuth {
       }
 
       return { success: true }
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: 'Network error. Please try again.' }
     }
   }
@@ -27,7 +28,7 @@ export class ClientAuth {
   // Verify OTP
   static async verifyOTP(email: string, otp: string): Promise<{ 
     success: boolean; 
-    user?: any; 
+    user?: User; 
     isNewUser?: boolean; 
     error?: string 
   }> {
@@ -51,13 +52,13 @@ export class ClientAuth {
         user: data.user,
         isNewUser: data.isNewUser
       }
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: 'Network error. Please try again.' }
     }
   }
 
   // Get current user
-  static async getCurrentUser(): Promise<{ user?: any; error?: string }> {
+  static async getCurrentUser(): Promise<{ user?: User; error?: string }> {
     try {
       const response = await fetch('/api/auth/me')
 
@@ -67,7 +68,7 @@ export class ClientAuth {
 
       const data = await response.json()
       return { user: data.user }
-    } catch (error) {
+    } catch (_error) {
       return { error: 'Network error' }
     }
   }
@@ -84,13 +85,13 @@ export class ClientAuth {
       }
 
       return { success: true }
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: 'Network error' }
     }
   }
 
   // Update user profile
-  static async updateProfile(updates: any): Promise<{ success: boolean; user?: any; error?: string }> {
+  static async updateProfile(updates: Partial<User>): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
       const response = await fetch('/api/users/update', {
         method: 'POST',
@@ -107,7 +108,7 @@ export class ClientAuth {
       }
 
       return { success: true, user: data.user }
-    } catch (error) {
+    } catch (_error) {
       return { success: false, error: 'Network error' }
     }
   }
