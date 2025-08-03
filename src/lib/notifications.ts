@@ -36,18 +36,33 @@ export class NotificationService {
   // Send email notification using Resend API
   static async sendEmail(emailData: EmailData): Promise<boolean> {
     try {
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Email API responded with status: ${response.status}`)
+      // Import Resend directly for server-side usage
+      const { Resend } = await import('resend')
+      
+      const apiKey = process.env.RESEND_API_KEY
+      if (!apiKey) {
+        console.error('RESEND_API_KEY environment variable is not set')
+        return false
+      }
+      
+      const resend = new Resend(apiKey)
+      
+      const emailPayload = {
+        from: process.env.FROM_EMAIL || 'Runner Community <noreply@runner-app.com>',
+        to: [emailData.to],
+        subject: emailData.subject,
+        html: emailData.html,
       }
 
+      console.log('Sending email with payload:', {
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        from: emailPayload.from
+      })
+
+      const result = await resend.emails.send(emailPayload)
+      
+      console.log('Email sent successfully:', result)
       return true
     } catch (error) {
       console.error('Failed to send email:', error)
@@ -475,6 +490,11 @@ export class NotificationService {
     assigneeName: string
   ): Promise<void> {
     try {
+      console.log('=== STARTING TASK ASSIGNED NOTIFICATION ===')
+      console.log('Task ID:', task.id)
+      console.log('Poster Email:', posterEmail)
+      console.log('Assignee Name:', assigneeName)
+
       // Create notification in database
       const notification = await this.createNotification({
         user_id: task.poster_id,
@@ -489,17 +509,26 @@ export class NotificationService {
         return
       }
 
+      console.log('Database notification created:', notification.id)
+
       // Send email
       const emailContent = this.generateEmailContent('task_assigned', task, assigneeName)
+      console.log('Generated email content for task assigned')
+      
       const emailSent = await this.sendEmail({
         to: posterEmail,
         ...emailContent
       })
 
+      console.log('Email sending result:', emailSent)
+
       // Update notification to mark as sent via email
       if (emailSent && notification.id) {
         await ReplitDB.markNotificationAsRead(notification.id)
+        console.log('Notification marked as read')
       }
+      
+      console.log('=== TASK ASSIGNED NOTIFICATION COMPLETE ===')
     } catch (error) {
       console.error('Error in notifyTaskAssigned:', error)
     }
@@ -512,6 +541,11 @@ export class NotificationService {
     assigneeName: string
   ): Promise<void> {
     try {
+      console.log('=== STARTING TASK COMPLETED NOTIFICATION ===')
+      console.log('Task ID:', task.id)
+      console.log('Poster Email:', posterEmail)
+      console.log('Assignee Name:', assigneeName)
+
       // Create notification in database
       const notification = await this.createNotification({
         user_id: task.poster_id,
@@ -526,17 +560,26 @@ export class NotificationService {
         return
       }
 
+      console.log('Database notification created:', notification.id)
+
       // Send email
       const emailContent = this.generateEmailContent('task_completed', task, assigneeName)
+      console.log('Generated email content for task completed')
+      
       const emailSent = await this.sendEmail({
         to: posterEmail,
         ...emailContent
       })
 
+      console.log('Email sending result:', emailSent)
+
       // Update notification to mark as sent via email
       if (emailSent && notification.id) {
         await ReplitDB.markNotificationAsRead(notification.id)
+        console.log('Notification marked as read')
       }
+      
+      console.log('=== TASK COMPLETED NOTIFICATION COMPLETE ===')
     } catch (error) {
       console.error('Error in notifyTaskCompleted:', error)
     }
