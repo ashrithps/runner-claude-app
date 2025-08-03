@@ -154,7 +154,7 @@ export default function AvailableTasksPage() {
         </Button>
       </div>
 
-      {tasks.length === 0 ? (
+      {tasks.filter(task => task.poster_id !== user?.id).length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <div className="text-gray-400 mb-4">
@@ -166,7 +166,7 @@ export default function AvailableTasksPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {tasks.map((task) => (
+          {tasks.filter(task => task.poster_id !== user?.id).map((task) => (
           <Card key={task.id} className="border-l-4 border-l-blue-500">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
