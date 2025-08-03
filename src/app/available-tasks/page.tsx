@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { MapPin, Clock, IndianRupee, User, Loader2, RotateCcw } from 'lucide-react'
+import { MapPin, Clock, IndianRupee, User, Loader2, RotateCcw, CheckCircle2 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 
 export default function AvailableTasksPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [acceptingTaskId, setAcceptingTaskId] = useState<string | null>(null)
+  const [recentlyAccepted, setRecentlyAccepted] = useState<string | null>(null)
   const { tasks, loadTasks, acceptTask, user } = useAppStore()
 
   useEffect(() => {
@@ -46,13 +48,26 @@ export default function AvailableTasksPage() {
       return
     }
     
+    setAcceptingTaskId(taskId)
+    
     try {
       await acceptTask(taskId, user.id, user.name)
+      
+      // Show success feedback
+      setRecentlyAccepted(taskId)
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setRecentlyAccepted(null)
+      }, 3000)
+      
       // Reload tasks to update the list
       await loadTasks()
     } catch (error) {
       console.error('Failed to accept task:', error)
       alert('Failed to accept task. Please try again.')
+    } finally {
+      setAcceptingTaskId(null)
     }
   }
 
@@ -181,13 +196,28 @@ export default function AvailableTasksPage() {
                   {task.poster_name}
                 </div>
                 
-                <Button 
-                  onClick={() => handleAcceptTask(task.id)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 mt-4"
-                  size="lg"
-                >
-                  Accept Task
-                </Button>
+                {recentlyAccepted === task.id ? (
+                  <div className="mt-4 w-full bg-green-100 border border-green-300 rounded-lg p-3 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
+                    <span className="text-green-800 font-medium">Task accepted successfully!</span>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={() => handleAcceptTask(task.id)}
+                    disabled={acceptingTaskId === task.id}
+                    className="w-full bg-blue-600 hover:bg-blue-700 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                    size="lg"
+                  >
+                    {acceptingTaskId === task.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Accepting...
+                      </>
+                    ) : (
+                      'Accept Task'
+                    )}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

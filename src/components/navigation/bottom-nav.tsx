@@ -25,11 +25,6 @@ const navItems = [
     href: '/profile',
     icon: User,
   },
-  {
-    name: 'Debug',
-    href: '/debug',
-    icon: Settings,
-  },
 ]
 
 export function BottomNav() {
