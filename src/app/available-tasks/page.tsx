@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { MapPin, Clock, IndianRupee, User, Loader2, RotateCcw, CheckCircle2 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
+import { UserRatingDisplay } from '@/components/user-rating-display'
 
 export default function AvailableTasksPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -193,7 +194,11 @@ export default function AvailableTasksPage() {
                 
                 <div className="flex items-center text-gray-600 text-sm">
                   <User className="h-4 w-4 mr-2 text-gray-400" />
-                  {task.poster_name}
+                  <UserRatingDisplay 
+                    userId={task.poster_id} 
+                    userName={task.poster_name}
+                    size="sm"
+                  />
                 </div>
                 
                 {recentlyAccepted === task.id ? (

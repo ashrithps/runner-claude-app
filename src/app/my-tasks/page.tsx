@@ -8,6 +8,7 @@ import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircl
 import { useAppStore, Task } from '@/lib/store'
 import { WhatsAppService } from '@/lib/whatsapp'
 import { TaskRating } from '@/components/rating-system'
+import { UserRatingDisplay } from '@/components/user-rating-display'
 
 export default function MyTasksPage() {
   const { myPostedTasks, myAcceptedTasks, completeTask, user, loadMyTasks } = useAppStore()
@@ -149,7 +150,12 @@ export default function MyTasksPage() {
                     
                     <div className="flex items-center text-gray-600 text-sm">
                       <User className="h-4 w-4 mr-2 text-gray-400" />
-                      Task by {task.poster_name}
+                      Task by <UserRatingDisplay 
+                        userId={task.poster_id} 
+                        userName={task.poster_name}
+                        size="sm"
+                        className="ml-1"
+                      />
                     </div>
 
                     {task.poster_mobile && WhatsAppService.isValidPhoneNumber(task.poster_mobile) && (
@@ -248,10 +254,15 @@ export default function MyTasksPage() {
                       {formatTaskTime(task.time)} • Posted {formatTimeAgo(task.created_at)}
                     </div>
                     
-                    {task.runner_name && (
+                    {task.runner_name && task.runner_id && (
                       <div className="flex items-center text-gray-600 text-sm">
                         <User className="h-4 w-4 mr-2 text-gray-400" />
-                        Accepted by {task.runner_name}
+                        Accepted by <UserRatingDisplay 
+                          userId={task.runner_id} 
+                          userName={task.runner_name}
+                          size="sm"
+                          className="ml-1"
+                        />
                       </div>
                     )}
 

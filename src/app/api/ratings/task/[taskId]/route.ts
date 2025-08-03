@@ -58,12 +58,19 @@ export async function GET(
       }
     })
 
+    // Check if user has provided their feedback
+    const userHasGivenFeedback = ratingsWithUsers.some(r => r.rater_id === sessionInfo.userId)
+    
     // Determine which ratings the current user can see and which they need to give
     const userRatings = {
       givenByMe: ratingsWithUsers.filter(r => r.rater_id === sessionInfo.userId),
-      receivedByMe: ratingsWithUsers.filter(r => r.rated_id === sessionInfo.userId),
+      // Only show received feedback if user has given their own feedback first
+      receivedByMe: userHasGivenFeedback ? ratingsWithUsers.filter(r => r.rated_id === sessionInfo.userId) : [],
+      // Hide all feedback until user provides their own
+      hiddenFeedbackCount: userHasGivenFeedback ? 0 : ratingsWithUsers.filter(r => r.rated_id === sessionInfo.userId).length,
       canRatePoster: task.runner_id === sessionInfo.userId && !ratingsWithUsers.some(r => r.rater_id === sessionInfo.userId && r.rated_id === task.poster_id),
-      canRateRunner: task.poster_id === sessionInfo.userId && task.runner_id && !ratingsWithUsers.some(r => r.rater_id === sessionInfo.userId && r.rated_id === task.runner_id)
+      canRateRunner: task.poster_id === sessionInfo.userId && task.runner_id && !ratingsWithUsers.some(r => r.rater_id === sessionInfo.userId && r.rated_id === task.runner_id),
+      hasGivenFeedback: userHasGivenFeedback
     }
 
     return NextResponse.json({ 

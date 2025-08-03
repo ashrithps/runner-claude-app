@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { User, MapPin, Phone, Edit, Save, Mail, LogOut } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { createDefaultUser } from '@/lib/utils'
+import { UserRatingDisplay } from '@/components/user-rating-display'
 
 const DEFAULT_PROFILE = createDefaultUser()
 
@@ -49,6 +50,17 @@ export default function ProfilePage() {
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900">👤 Profile</h1>
         <p className="text-gray-600 mt-1">Manage your community details</p>
+        {user?.id && (
+          <div className="mt-3 flex justify-center">
+            <UserRatingDisplay 
+              userId={user.id} 
+              userName=""
+              size="md"
+              showCount={true}
+              className="text-center"
+            />
+          </div>
+        )}
       </div>
 
       <Card>
