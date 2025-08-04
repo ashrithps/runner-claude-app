@@ -23,13 +23,40 @@ export async function POST(request: NextRequest) {
 
     const updates = await request.json()
 
-    // Update user in database
+    // Check if user exists, if not create them first
+    let existingUser = DatabaseOperations.getUserById(sessionInfo.userId)
+    
+    if (!existingUser) {
+      // User session exists but not in database - create user with email from session
+      const sessionData = DatabaseOperations.getSession(sessionId)
+      if (!sessionData?.email) {
+        return NextResponse.json(
+          { error: 'Session data incomplete' },
+          { status: 400 }
+        )
+      }
+      
+      existingUser = await DatabaseOperations.createUser({
+        email: sessionData.email,
+        name: updates.name || '',
+        latitude: updates.latitude || 0,
+        longitude: updates.longitude || 0,
+        address_details: updates.address_details || '',
+        mobile: updates.mobile || '',
+        available_for_tasks: updates.available_for_tasks ?? true,
+        email_notifications: updates.email_notifications ?? true
+      })
+      
+      return NextResponse.json({ user: existingUser })
+    }
+
+    // Update existing user in database
     const updatedUser = await DatabaseOperations.updateUser(sessionInfo.userId, updates)
 
     if (!updatedUser) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Failed to update user' },
+        { status: 500 }
       )
     }
 

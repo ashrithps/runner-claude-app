@@ -26,6 +26,15 @@ export async function POST(request: NextRequest) {
     // Ensure the poster_id matches the session user
     taskData.poster_id = sessionInfo.userId
 
+    // Ensure user exists in database before creating task
+    const existingUser = DatabaseOperations.getUserById(sessionInfo.userId)
+    if (!existingUser) {
+      return NextResponse.json(
+        { error: 'User not found in database' },
+        { status: 400 }
+      )
+    }
+
     // Create task in database
     const newTask = await DatabaseOperations.createTask(taskData)
 

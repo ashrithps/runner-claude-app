@@ -89,12 +89,13 @@ export class AuthService {
       let isNewUser = false
 
       if (!user) {
-        // Create new user
+        // Create new user with default GPS coordinates (to be updated later)
         user = await DatabaseOperations.createUser({
           email,
           name: '',
-          tower: '',
-          flat: '',
+          latitude: 0,
+          longitude: 0,
+          address_details: '',
           mobile: '',
           available_for_tasks: true,
           email_notifications: true
