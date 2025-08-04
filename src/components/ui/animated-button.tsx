@@ -3,6 +3,7 @@
 import { forwardRef } from 'react'
 import { motion, HTMLMotionProps } from 'framer-motion'
 import { Button, ButtonProps } from './button'
+import { ButtonFeedbackEnhancer } from './visual-feedback'
 import { cn } from '@/lib/utils'
 
 interface AnimatedButtonProps extends Omit<ButtonProps, 'asChild'> {
@@ -26,10 +27,11 @@ const AnimatedButton = forwardRef<
   disabled,
   ...props 
 }, ref) => {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Add haptic feedback if supported and enabled
-    if (haptic && 'vibrate' in navigator) {
-      navigator.vibrate(50) // Short vibration
+  const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    // Add enhanced feedback if supported and enabled
+    if (haptic) {
+      const { enhancedFeedback } = await import('@/lib/haptics')
+      await enhancedFeedback.trigger(success ? 'success' : 'selection')
     }
     
     if (onClick) {
@@ -77,34 +79,39 @@ const AnimatedButton = forwardRef<
   }
 
   return (
-    <motion.button
-      ref={ref}
-      className={cn(
-        // Base button styles
-        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-        // Variant styles
-        variant === 'default' && 'bg-primary text-primary-foreground shadow hover:bg-primary/90',
-        variant === 'destructive' && 'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
-        variant === 'outline' && 'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
-        variant === 'secondary' && 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        variant === 'ghost' && 'hover:bg-accent hover:text-accent-foreground',
-        variant === 'link' && 'text-primary underline-offset-4 hover:underline',
-        // Size styles
-        size === 'default' && 'h-9 px-4 py-2',
-        size === 'sm' && 'h-8 rounded-md px-3 text-xs',
-        size === 'lg' && 'h-10 rounded-md px-8',
-        size === 'icon' && 'h-9 w-9',
-        // Success state
-        success && 'bg-green-600 hover:bg-green-700 text-white',
-        className
-      )}
-      onClick={handleClick}
+    <ButtonFeedbackEnhancer 
+      pattern={success ? 'success' : variant === 'destructive' ? 'error' : 'selection'}
       disabled={disabled}
-      {...getAnimation()}
-      {...props}
     >
-      {children}
-    </motion.button>
+      <motion.button
+        ref={ref}
+        className={cn(
+          // Base button styles
+          'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+          // Variant styles
+          variant === 'default' && 'bg-primary text-primary-foreground shadow hover:bg-primary/90',
+          variant === 'destructive' && 'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
+          variant === 'outline' && 'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
+          variant === 'secondary' && 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
+          variant === 'ghost' && 'hover:bg-accent hover:text-accent-foreground',
+          variant === 'link' && 'text-primary underline-offset-4 hover:underline',
+          // Size styles
+          size === 'default' && 'h-9 px-4 py-2',
+          size === 'sm' && 'h-8 rounded-md px-3 text-xs',
+          size === 'lg' && 'h-10 rounded-md px-8',
+          size === 'icon' && 'h-9 w-9',
+          // Success state
+          success && 'bg-green-600 hover:bg-green-700 text-white',
+          className
+        )}
+        onClick={handleClick}
+        disabled={disabled}
+        {...getAnimation()}
+        {...props}
+      >
+        {children}
+      </motion.button>
+    </ButtonFeedbackEnhancer>
   )
 })
 

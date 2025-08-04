@@ -1,18 +1,40 @@
 'use client'
 
-export type HapticPattern = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'selection'
+import { platformDetection } from './platform-detection'
+import { audioFeedback, type AudioFeedbackType } from './audio-feedback'
 
-interface HapticFeedback {
-  vibrate: (pattern: HapticPattern) => void
-  isSupported: () => boolean
-  enable: () => void
-  disable: () => void
-  isEnabled: () => boolean
+export type FeedbackPattern = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'selection'
+export type FeedbackMode = 'haptic' | 'audio' | 'visual' | 'auto'
+
+interface FeedbackConfig {
+  hapticEnabled: boolean
+  audioEnabled: boolean
+  visualEnabled: boolean
+  mode: FeedbackMode
+  audioVolume: number
+  visualIntensity: number
 }
 
-class HapticService implements HapticFeedback {
-  private enabled: boolean = true
-  private patterns: Record<HapticPattern, number | number[]> = {
+interface MultiFeedbackService {
+  trigger: (pattern: FeedbackPattern) => Promise<void>
+  isSupported: () => boolean
+  getConfig: () => FeedbackConfig
+  setConfig: (config: Partial<FeedbackConfig>) => void
+  setMode: (mode: FeedbackMode) => void
+  test: () => Promise<boolean>
+}
+
+class EnhancedFeedbackService implements MultiFeedbackService {
+  private config: FeedbackConfig = {
+    hapticEnabled: true,
+    audioEnabled: true,
+    visualEnabled: true,
+    mode: 'auto',
+    audioVolume: 0.3,
+    visualIntensity: 1.0
+  }
+
+  private hapticPatterns: Record<FeedbackPattern, number | number[]> = {
     light: 50,
     medium: 100,
     heavy: 200,
@@ -22,109 +44,346 @@ class HapticService implements HapticFeedback {
     selection: 30
   }
 
-  vibrate(pattern: HapticPattern): void {
-    if (!this.enabled || !this.isSupported()) return
+  private visualCallbacks: Set<(pattern: FeedbackPattern) => void> = new Set()
+
+  constructor() {
+    this.loadConfig()
+  }
+
+  private loadConfig(): void {
+    if (typeof window === 'undefined') return
 
     try {
-      const vibrationPattern = this.patterns[pattern]
-      navigator.vibrate(vibrationPattern)
+      const stored = localStorage.getItem('feedback-config')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        this.config = { ...this.config, ...parsed }
+      }
+    } catch (error) {
+      console.warn('Failed to load feedback config:', error)
+    }
+  }
+
+  private saveConfig(): void {
+    if (typeof window === 'undefined') return
+
+    try {
+      localStorage.setItem('feedback-config', JSON.stringify(this.config))
+    } catch (error) {
+      console.warn('Failed to save feedback config:', error)
+    }
+  }
+
+  private async triggerHaptic(pattern: FeedbackPattern): Promise<boolean> {
+    if (!this.config.hapticEnabled) return false
+
+    const platform = platformDetection.getPlatformInfo()
+    if (!platform.supportsHaptics) return false
+
+    try {
+      const vibrationPattern = this.hapticPatterns[pattern]
+      const result = navigator.vibrate(vibrationPattern)
+      return result === true
     } catch (error) {
       console.warn('Haptic feedback failed:', error)
+      return false
     }
   }
 
-  isSupported(): boolean {
-    return 'vibrate' in navigator && typeof navigator.vibrate === 'function'
-  }
+  private async triggerAudio(pattern: FeedbackPattern): Promise<boolean> {
+    if (!this.config.audioEnabled) return false
 
-  enable(): void {
-    this.enabled = true
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('haptics-enabled', 'true')
+    const platform = platformDetection.getPlatformInfo()
+    if (!platform.supportsAudio) return false
+
+    try {
+      // Set audio volume
+      audioFeedback.setVolume(this.config.audioVolume)
+      audioFeedback.setEnabled(this.config.audioEnabled)
+      
+      await audioFeedback.play(pattern as AudioFeedbackType)
+      return true
+    } catch (error) {
+      console.warn('Audio feedback failed:', error)
+      return false
     }
   }
 
-  disable(): void {
-    this.enabled = false
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('haptics-enabled', 'false')
+  private triggerVisual(pattern: FeedbackPattern): boolean {
+    if (!this.config.visualEnabled) return false
+
+    try {
+      // Notify registered visual feedback handlers
+      this.visualCallbacks.forEach(callback => {
+        try {
+          callback(pattern)
+        } catch (error) {
+          console.warn('Visual feedback callback failed:', error)
+        }
+      })
+      return true
+    } catch (error) {
+      console.warn('Visual feedback failed:', error)
+      return false
     }
   }
 
-  isEnabled(): boolean {
-    if (typeof window === 'undefined') return this.enabled
+  public async trigger(pattern: FeedbackPattern): Promise<void> {
+    const platform = platformDetection.getPlatformInfo()
+    const capabilities = platformDetection.getFeedbackCapabilities()
     
-    const stored = localStorage.getItem('haptics-enabled')
-    if (stored !== null) {
-      this.enabled = stored === 'true'
+    let feedbackProvided = false
+
+    // Determine which feedback methods to use based on mode and capabilities
+    const methods = this.getActiveFeedbackMethods(capabilities)
+
+    // Try feedback methods in priority order
+    for (const method of methods) {
+      try {
+        let success = false
+
+        switch (method) {
+          case 'haptic':
+            success = await this.triggerHaptic(pattern)
+            break
+          case 'audio':
+            success = await this.triggerAudio(pattern)
+            break
+          case 'visual':
+            success = this.triggerVisual(pattern)
+            break
+        }
+
+        if (success) {
+          feedbackProvided = true
+          
+          // For iPhone Safari, prefer audio over visual
+          if (platform.isIOS && platform.isSafari && method === 'audio') {
+            break // Audio feedback is sufficient for iPhone Safari
+          }
+        }
+      } catch (error) {
+        console.warn(`${method} feedback failed:`, error)
+      }
     }
-    return this.enabled
+
+    // Always ensure visual feedback as absolute fallback
+    if (!feedbackProvided && this.config.visualEnabled) {
+      this.triggerVisual(pattern)
+    }
+  }
+
+  private getActiveFeedbackMethods(capabilities: ReturnType<typeof platformDetection.getFeedbackCapabilities>): ('haptic' | 'audio' | 'visual')[] {
+    if (this.config.mode === 'haptic' && capabilities.haptic) {
+      return ['haptic']
+    }
+    
+    if (this.config.mode === 'audio' && capabilities.audio) {
+      return ['audio', 'visual']
+    }
+    
+    if (this.config.mode === 'visual') {
+      return ['visual']
+    }
+    
+    // Auto mode - use best available methods
+    const methods: ('haptic' | 'audio' | 'visual')[] = []
+    
+    if (this.config.hapticEnabled && capabilities.haptic) {
+      methods.push('haptic')
+    }
+    
+    if (this.config.audioEnabled && capabilities.audio) {
+      methods.push('audio')
+    }
+    
+    if (this.config.visualEnabled) {
+      methods.push('visual')
+    }
+    
+    return methods
+  }
+
+  public isSupported(): boolean {
+    const capabilities = platformDetection.getFeedbackCapabilities()
+    return capabilities.haptic || capabilities.audio || capabilities.visual
+  }
+
+  public getConfig(): FeedbackConfig {
+    return { ...this.config }
+  }
+
+  public setConfig(updates: Partial<FeedbackConfig>): void {
+    this.config = { ...this.config, ...updates }
+    this.saveConfig()
+    
+    // Update audio feedback settings
+    if (updates.audioEnabled !== undefined) {
+      audioFeedback.setEnabled(updates.audioEnabled)
+    }
+    if (updates.audioVolume !== undefined) {
+      audioFeedback.setVolume(updates.audioVolume)
+    }
+  }
+
+  public setMode(mode: FeedbackMode): void {
+    this.setConfig({ mode })
+  }
+
+  public async test(): Promise<boolean> {
+    try {
+      await this.trigger('selection')
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Visual feedback registration
+  public onVisualFeedback(callback: (pattern: FeedbackPattern) => void): () => void {
+    this.visualCallbacks.add(callback)
+    return () => this.visualCallbacks.delete(callback)
+  }
+
+  // Initialize audio context on user interaction (required for iOS)
+  public async unlock(): Promise<void> {
+    try {
+      await audioFeedback.unlock()
+    } catch (error) {
+      console.warn('Failed to unlock audio feedback:', error)
+    }
+  }
+
+  // Get platform-specific recommendations
+  public getRecommendedSettings(): Partial<FeedbackConfig> {
+    const platform = platformDetection.getPlatformInfo()
+    
+    if (platform.isIOS && platform.isSafari) {
+      // iPhone Safari - prioritize audio feedback
+      return {
+        hapticEnabled: false,
+        audioEnabled: true,
+        visualEnabled: true,
+        mode: 'auto',
+        audioVolume: 0.4
+      }
+    }
+    
+    if (platform.isAndroid && platform.isChrome) {
+      // Android Chrome - haptics work well
+      return {
+        hapticEnabled: true,
+        audioEnabled: true,
+        visualEnabled: true,
+        mode: 'auto',
+        audioVolume: 0.2
+      }
+    }
+    
+    // Desktop fallback
+    return {
+      hapticEnabled: false,
+      audioEnabled: true,
+      visualEnabled: true,
+      mode: 'auto',
+      audioVolume: 0.3
+    }
   }
 }
 
-// Create singleton instance
-export const haptics = new HapticService()
+// Export singleton instance
+export const enhancedFeedback = new EnhancedFeedbackService()
+
+// Legacy compatibility
+export const haptics = {
+  vibrate: (pattern: FeedbackPattern) => enhancedFeedback.trigger(pattern),
+  isSupported: () => platformDetection.canUseHaptics(),
+  enable: () => enhancedFeedback.setConfig({ hapticEnabled: true }),
+  disable: () => enhancedFeedback.setConfig({ hapticEnabled: false }),
+  isEnabled: () => enhancedFeedback.getConfig().hapticEnabled
+}
 
 // Convenience functions
 export const vibrate = {
-  light: () => haptics.vibrate('light'),
-  medium: () => haptics.vibrate('medium'),
-  heavy: () => haptics.vibrate('heavy'),
-  success: () => haptics.vibrate('success'),
-  warning: () => haptics.vibrate('warning'),
-  error: () => haptics.vibrate('error'),
-  selection: () => haptics.vibrate('selection')
+  light: () => enhancedFeedback.trigger('light'),
+  medium: () => enhancedFeedback.trigger('medium'),
+  heavy: () => enhancedFeedback.trigger('heavy'),
+  success: () => enhancedFeedback.trigger('success'),
+  warning: () => enhancedFeedback.trigger('warning'),
+  error: () => enhancedFeedback.trigger('error'),
+  selection: () => enhancedFeedback.trigger('selection')
 }
 
-// React hook for haptic feedback
+// Enhanced React hook
 import { useCallback, useEffect, useState } from 'react'
+import { usePlatformDetection } from './platform-detection'
 
 export function useHaptics() {
-  const [isSupported, setIsSupported] = useState(false)
-  const [isEnabled, setIsEnabled] = useState(true)
+  const [config, setConfig] = useState<FeedbackConfig>(enhancedFeedback.getConfig())
+  const { platformInfo, feedbackCapabilities } = usePlatformDetection()
 
   useEffect(() => {
-    setIsSupported(haptics.isSupported())
-    setIsEnabled(haptics.isEnabled())
+    setConfig(enhancedFeedback.getConfig())
   }, [])
 
-  const triggerHaptic = useCallback((pattern: HapticPattern) => {
-    haptics.vibrate(pattern)
+  const triggerFeedback = useCallback(async (pattern: FeedbackPattern) => {
+    await enhancedFeedback.trigger(pattern)
   }, [])
 
-  const enable = useCallback(() => {
-    haptics.enable()
-    setIsEnabled(true)
+  const updateConfig = useCallback((updates: Partial<FeedbackConfig>) => {
+    enhancedFeedback.setConfig(updates)
+    setConfig(enhancedFeedback.getConfig())
   }, [])
 
-  const disable = useCallback(() => {
-    haptics.disable()
-    setIsEnabled(false)
+  const setMode = useCallback((mode: FeedbackMode) => {
+    enhancedFeedback.setMode(mode)
+    setConfig(enhancedFeedback.getConfig())
   }, [])
 
-  const toggle = useCallback(() => {
-    if (isEnabled) {
-      disable()
-    } else {
-      enable()
-    }
-  }, [isEnabled, enable, disable])
+  const unlock = useCallback(async () => {
+    await enhancedFeedback.unlock()
+  }, [])
+
+  const test = useCallback(async () => {
+    return await enhancedFeedback.test()
+  }, [])
+
+  const applyRecommendedSettings = useCallback(() => {
+    const recommended = enhancedFeedback.getRecommendedSettings()
+    updateConfig(recommended)
+  }, [updateConfig])
 
   return {
-    isSupported,
-    isEnabled,
-    triggerHaptic,
-    enable,
-    disable,
-    toggle,
+    // Config
+    config,
+    updateConfig,
+    setMode,
+    
+    // Platform info
+    platformInfo,
+    capabilities: feedbackCapabilities,
+    
+    // Actions
+    triggerFeedback,
+    unlock,
+    test,
+    applyRecommendedSettings,
+    
+    // Convenience methods
     vibrate: {
-      light: () => triggerHaptic('light'),
-      medium: () => triggerHaptic('medium'),
-      heavy: () => triggerHaptic('heavy'),
-      success: () => triggerHaptic('success'),
-      warning: () => triggerHaptic('warning'),
-      error: () => triggerHaptic('error'),
-      selection: () => triggerHaptic('selection')
-    }
+      light: () => triggerFeedback('light'),
+      medium: () => triggerFeedback('medium'),
+      heavy: () => triggerFeedback('heavy'),
+      success: () => triggerFeedback('success'),
+      warning: () => triggerFeedback('warning'),
+      error: () => triggerFeedback('error'),
+      selection: () => triggerFeedback('selection')
+    },
+    
+    // Legacy compatibility
+    isSupported: enhancedFeedback.isSupported(),
+    isEnabled: config.hapticEnabled || config.audioEnabled || config.visualEnabled,
+    enable: () => updateConfig({ hapticEnabled: true, audioEnabled: true }),
+    disable: () => updateConfig({ hapticEnabled: false, audioEnabled: false })
   }
 }

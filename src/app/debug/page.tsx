@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FeedbackTest } from '@/components/ui/feedback-test'
 // Remove old Supabase imports - we now use SQLite
 import { clearAppStorage, debugStorage } from '@/lib/clear-storage'
 
@@ -56,6 +57,15 @@ export default function DebugPage() {
         <h1 className="text-2xl font-bold text-gray-900">🔧 Debug & Test</h1>
         <p className="text-gray-600 mt-1">Test SQLite database connection and features</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>🎮 Multi-Modal Feedback System</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FeedbackTest />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
