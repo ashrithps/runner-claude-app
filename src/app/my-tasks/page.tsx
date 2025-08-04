@@ -141,16 +141,17 @@ export default function MyTasksPage() {
                     <div className="flex items-center text-gray-600 text-sm">
                       <MapPin className="h-4 w-4 mr-2 text-gray-400" />
                       <div className="flex-1">
-                        <div>{task.address_details}</div>
+                        <div className="mb-2">{task.address_details}</div>
                         {task.latitude && task.longitude && (
-                          <a
-                            href={`https://www.google.com/maps?q=${task.latitude},${task.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-xs underline mt-1 inline-block"
+                          <Button
+                            onClick={() => window.open(`https://www.google.com/maps?q=${task.latitude},${task.longitude}`, '_blank')}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 py-1 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
                           >
-                            📍 View on Google Maps
-                          </a>
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Open in Maps
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -259,16 +260,17 @@ export default function MyTasksPage() {
                     <div className="flex items-center text-gray-600 text-sm">
                       <MapPin className="h-4 w-4 mr-2 text-gray-400" />
                       <div className="flex-1">
-                        <div>{task.address_details}</div>
+                        <div className="mb-2">{task.address_details}</div>
                         {task.latitude && task.longitude && (
-                          <a
-                            href={`https://www.google.com/maps?q=${task.latitude},${task.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-xs underline mt-1 inline-block"
+                          <Button
+                            onClick={() => window.open(`https://www.google.com/maps?q=${task.latitude},${task.longitude}`, '_blank')}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 py-1 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
                           >
-                            📍 View on Google Maps
-                          </a>
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Open in Maps
+                          </Button>
                         )}
                       </div>
                     </div>

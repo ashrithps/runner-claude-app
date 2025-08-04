@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
       NotificationService.notifyTaskCompleted(
         taskWithNames,
         poster.email,
-        runner?.name || 'Anonymous'
+        runner?.name || 'Anonymous',
+        runner?.mobile
       ).catch(error => console.error('Failed to send task completed notification:', error))
     }
 

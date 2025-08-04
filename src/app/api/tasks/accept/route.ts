@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
       NotificationService.notifyTaskAssigned(
         taskWithNames,
         poster.email,
-        runner?.name || runnerName
+        runner?.name || runnerName,
+        runner?.mobile
       ).catch(error => console.error('Failed to send task assigned notification:', error))
     }
 

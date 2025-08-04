@@ -74,9 +74,12 @@ export class NotificationService {
   static generateEmailContent(
     type: NotificationType,
     task: Task,
-    assigneeName?: string
+    assigneeName?: string,
+    assigneePhone?: string,
+    assigneeWhatsApp?: string
   ) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // Use environment variable for app URL, fallback to production domain
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://runner.loop.me'
     const formatDate = (dateString: string) => {
       try {
         return new Date(dateString).toLocaleString('en-US', {
@@ -91,6 +94,70 @@ export class NotificationService {
       } catch {
         return dateString
       }
+    }
+
+    // Helper function to create Google Maps button
+    const createMapsButton = (latitude?: number, longitude?: number) => {
+      if (!latitude || !longitude) return ''
+      const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
+      return `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 15px 0;">
+          <tr>
+            <td style="background-color: #4285f4; border-radius: 6px; padding: 0;">
+              <a href="${mapsUrl}" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #4285f4; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                🗺️ Open in Google Maps
+              </a>
+            </td>
+          </tr>
+        </table>
+      `
+    }
+
+    // Helper function to create WhatsApp button
+    const createWhatsAppButton = (phone?: string, message?: string) => {
+      if (!phone) return ''
+      const cleanPhone = phone.replace(/\D/g, '').startsWith('91') ? phone.replace(/\D/g, '') : `91${phone.replace(/\D/g, '')}`
+      const whatsappUrl = `https://wa.me/${cleanPhone}${message ? `?text=${encodeURIComponent(message)}` : ''}`
+      return `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 15px 0;">
+          <tr>
+            <td style="background-color: #25d366; border-radius: 6px; padding: 0;">
+              <a href="${whatsappUrl}" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #25d366; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
+                📱 Contact on WhatsApp
+              </a>
+            </td>
+          </tr>
+        </table>
+      `
+    }
+
+    // Helper function to create payment details section
+    const createPaymentSection = (phone?: string, reward?: number) => {
+      if (!phone || !reward) return ''
+      return `
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0; margin: 20px 0;">
+          <tr>
+            <td style="padding: 20px;">
+              <h3 style="color: #166534; font-size: 16px; font-weight: 600; margin: 0 0 12px;">💰 Payment Details</h3>
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 500;">📞 Phone:</td>
+                  <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 600; font-family: monospace;">${phone}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 500;">💵 Amount:</td>
+                  <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 600;">₹${reward}</td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding: 8px 0 4px; color: #166534; font-size: 12px;">
+                    Pay via UPI, PhonePe, Google Pay, or Paytm
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      `
     }
     
     switch (type) {
@@ -144,8 +211,8 @@ export class NotificationService {
                                 
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                   <tr>
-                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Location:</td>
-                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.location}</td>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Address:</td>
+                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.address_details || task.location || 'Location not specified'}</td>
                                   </tr>
                                   <tr>
                                     <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">🕒 Time:</td>
@@ -170,10 +237,16 @@ export class NotificationService {
                             </tr>
                           </table>
                           
+                          <!-- Google Maps Button -->
+                          ${createMapsButton(task.latitude, task.longitude)}
+                          
                           <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
                             🎉 <strong>What's next?</strong><br>
-                            You can contact <strong>${assigneeName}</strong> directly via WhatsApp to coordinate the task details and timing.
+                            Contact <strong>${assigneeName}</strong> to coordinate the task details and timing.
                           </p>
+                          
+                          <!-- WhatsApp Contact Button -->
+                          ${createWhatsAppButton(assigneePhone, `Hi! I accepted your task "${task.title}" on Runner app. Let's coordinate the details!`)}
                           
                           <!-- CTA Button -->
                           <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px 0;">
@@ -268,8 +341,8 @@ export class NotificationService {
                                 
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                   <tr>
-                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Location:</td>
-                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.location}</td>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Address:</td>
+                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.address_details || task.location || 'Location not specified'}</td>
                                   </tr>
                                   <tr>
                                     <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">🕒 Completed:</td>
@@ -292,17 +365,14 @@ export class NotificationService {
                             </tr>
                           </table>
                           
-                          <!-- Payment Reminder -->
-                          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 20px 0;">
-                            <tr>
-                              <td style="padding: 20px;">
-                                <p style="color: #92400e; font-size: 16px; font-weight: 600; margin: 0 0 8px;">💳 Payment Reminder</p>
-                                <p style="color: #92400e; font-size: 14px; line-height: 1.5; margin: 0;">
-                                  Please remember to pay the agreed reward amount of <strong>₹${task.reward}</strong> to ${assigneeName}${task.upi_id ? ` via UPI: ${task.upi_id}` : ' as agreed'}.
-                                </p>
-                              </td>
-                            </tr>
-                          </table>
+                          <!-- Google Maps Button -->
+                          ${createMapsButton(task.latitude, task.longitude)}
+                          
+                          <!-- Payment Details Section -->
+                          ${createPaymentSection(assigneePhone, task.reward)}
+                          
+                          <!-- WhatsApp Contact Button -->
+                          ${createWhatsAppButton(assigneePhone, `Hi ${assigneeName}! Thank you for completing the task "${task.title}". Payment details are ready. 💰`)}
                           
                           <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
                             🌟 <strong>Don't forget to rate your experience!</strong><br>
@@ -401,8 +471,8 @@ export class NotificationService {
                                 
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                   <tr>
-                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Location:</td>
-                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.location}</td>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Address:</td>
+                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.address_details || task.location || 'Location not specified'}</td>
                                   </tr>
                                   <tr>
                                     <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">🕒 Time:</td>
@@ -426,6 +496,9 @@ export class NotificationService {
                               </td>
                             </tr>
                           </table>
+                          
+                          <!-- Google Maps Button -->
+                          ${createMapsButton(task.latitude, task.longitude)}
                           
                           <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
                             🔍 <strong>Don't worry!</strong><br>
@@ -487,7 +560,8 @@ export class NotificationService {
   static async notifyTaskAssigned(
     task: Task,
     posterEmail: string,
-    assigneeName: string
+    assigneeName: string,
+    assigneePhone?: string
   ): Promise<void> {
     try {
       console.log('=== STARTING TASK ASSIGNED NOTIFICATION ===')
@@ -512,7 +586,7 @@ export class NotificationService {
       console.log('Database notification created:', notification.id)
 
       // Send email
-      const emailContent = this.generateEmailContent('task_assigned', task, assigneeName)
+      const emailContent = this.generateEmailContent('task_assigned', task, assigneeName, assigneePhone)
       console.log('Generated email content for task assigned')
       
       const emailSent = await this.sendEmail({
@@ -538,7 +612,8 @@ export class NotificationService {
   static async notifyTaskCompleted(
     task: Task,
     posterEmail: string,
-    assigneeName: string
+    assigneeName: string,
+    assigneePhone?: string
   ): Promise<void> {
     try {
       console.log('=== STARTING TASK COMPLETED NOTIFICATION ===')
@@ -563,7 +638,7 @@ export class NotificationService {
       console.log('Database notification created:', notification.id)
 
       // Send email
-      const emailContent = this.generateEmailContent('task_completed', task, assigneeName)
+      const emailContent = this.generateEmailContent('task_completed', task, assigneeName, assigneePhone)
       console.log('Generated email content for task completed')
       
       const emailSent = await this.sendEmail({
