@@ -27,12 +27,16 @@ export class WhatsAppService {
 
   // Generate WhatsApp message for task assignment
   static generateTaskAssignmentMessage(task: Task, posterName: string): string {
+    const googleMapsLink = task.latitude && task.longitude 
+      ? `\n🗺️ Location on Maps: https://www.google.com/maps?q=${task.latitude},${task.longitude}` 
+      : ''
+      
     return `Hi ${posterName}! 👋
 
 I've accepted your task on the Runner app:
 
 📝 *${task.title}*
-📍 Location: ${task.address_details}
+📍 Address: ${task.address_details}${googleMapsLink}
 ⏰ Time: ${task.time}
 💰 Reward: ₹${task.reward}
 
@@ -56,11 +60,15 @@ Thank you! 😊`
 
   // Generate WhatsApp message for coordinating task details
   static generateCoordinationMessage(task: Task, senderName: string): string {
+    const googleMapsLink = task.latitude && task.longitude 
+      ? `\n🗺️ Location on Maps: https://www.google.com/maps?q=${task.latitude},${task.longitude}` 
+      : ''
+      
     return `Hi! This is ${senderName} 👋
 
 I wanted to coordinate with you about the task: *${task.title}*
 
-📍 Location: ${task.address_details}
+📍 Address: ${task.address_details}${googleMapsLink}
 ⏰ Time: ${task.time}
 
 Let me know if you have any questions or need to discuss any details!
@@ -78,7 +86,31 @@ Thanks!`
   // Open WhatsApp with message
   static openWhatsApp(phoneNumber: string, message: string): void {
     const url = this.createWhatsAppUrl(phoneNumber, message)
-    window.open(url, '_blank')
+    
+    // Try to open WhatsApp, with fallback handling
+    try {
+      // For mobile devices, try to open WhatsApp app directly
+      if (this.isMobile()) {
+        window.location.href = url
+      } else {
+        // For desktop, open in new tab/window
+        const whatsappWindow = window.open(url, '_blank', 'noopener,noreferrer')
+        
+        // If popup is blocked, fallback to location change
+        if (!whatsappWindow) {
+          window.location.href = url
+        }
+      }
+    } catch (error) {
+      console.error('Failed to open WhatsApp:', error)
+      // Fallback: try direct navigation
+      window.location.href = url
+    }
+  }
+
+  // Detect if user is on mobile device
+  private static isMobile(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   }
 
   // Contact task poster (used by task accepter)
@@ -118,5 +150,23 @@ Thanks!`
     
     // Return with + prefix for international numbers
     return `+${cleaned}`
+  }
+
+  // Validate that a URL is a proper wa.me link
+  static isValidWhatsAppUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url)
+      return urlObj.hostname === 'wa.me' && urlObj.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  // Get WhatsApp URL for testing/debugging
+  static getWhatsAppUrlForTesting(phoneNumber: string, message: string = 'Test message'): string {
+    const url = this.createWhatsAppUrl(phoneNumber, message)
+    console.log('Generated WhatsApp URL:', url)
+    console.log('URL is valid wa.me link:', this.isValidWhatsAppUrl(url))
+    return url
   }
 }

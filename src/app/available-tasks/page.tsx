@@ -184,9 +184,21 @@ export default function AvailableTasksPage() {
             <CardContent className="pt-0">
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-gray-600 text-sm">
-                  <div className="flex items-center">
+                  <div className="flex items-center flex-1">
                     <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                    <span>{task.address_details}</span>
+                    <div className="flex-1">
+                      <div>{task.address_details}</div>
+                      {task.latitude && task.longitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${task.latitude},${task.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-xs underline mt-1 inline-block"
+                        >
+                          📍 View on Google Maps
+                        </a>
+                      )}
+                    </div>
                   </div>
                   {task.distance !== undefined && (
                     <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-full text-xs font-medium">

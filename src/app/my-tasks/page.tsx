@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle } from 'lucide-react'
+import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
 import { useAppStore, Task } from '@/lib/store'
 import { WhatsAppService } from '@/lib/whatsapp'
 import { TaskRating } from '@/components/rating-system'
@@ -140,7 +140,19 @@ export default function MyTasksPage() {
                   <div className="space-y-3">
                     <div className="flex items-center text-gray-600 text-sm">
                       <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      {task.location}
+                      <div className="flex-1">
+                        <div>{task.address_details}</div>
+                        {task.latitude && task.longitude && (
+                          <a
+                            href={`https://www.google.com/maps?q=${task.latitude},${task.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 text-xs underline mt-1 inline-block"
+                          >
+                            📍 View on Google Maps
+                          </a>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center text-gray-600 text-sm">
@@ -246,7 +258,19 @@ export default function MyTasksPage() {
                   <div className="space-y-3">
                     <div className="flex items-center text-gray-600 text-sm">
                       <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      {task.location}
+                      <div className="flex-1">
+                        <div>{task.address_details}</div>
+                        {task.latitude && task.longitude && (
+                          <a
+                            href={`https://www.google.com/maps?q=${task.latitude},${task.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 text-xs underline mt-1 inline-block"
+                          >
+                            📍 View on Google Maps
+                          </a>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="flex items-center text-gray-600 text-sm">
@@ -266,7 +290,7 @@ export default function MyTasksPage() {
                       </div>
                     )}
 
-                    {task.runner_name && task.runner_mobile && WhatsAppService.isValidPhoneNumber(task.runner_mobile) && (
+                    {task.runner_name && task.runner_mobile && WhatsAppService.isValidPhoneNumber(task.runner_mobile) && task.status !== 'completed' && (
                       <Button 
                         onClick={() => handleContactRunner(task)}
                         variant="outline"
@@ -276,6 +300,33 @@ export default function MyTasksPage() {
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Contact {task.runner_name} on WhatsApp
                       </Button>
+                    )}
+
+                    {/* Show runner's phone number when task is completed for payment */}
+                    {task.status === 'completed' && task.runner_name && task.runner_mobile && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-3">
+                        <h4 className="font-medium text-green-900 mb-2">💰 Task Completed - Payment Details</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center text-green-800">
+                            <User className="h-4 w-4 mr-2" />
+                            <span className="font-medium">{task.runner_name}</span>
+                          </div>
+                          <div className="flex items-center text-green-800">
+                            <Phone className="h-4 w-4 mr-2" />
+                            <span className="font-mono">{task.runner_mobile}</span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(task.runner_mobile)}
+                              className="ml-2 text-green-600 hover:text-green-800 underline text-xs"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <div className="flex items-center text-green-800">
+                            <IndianRupee className="h-4 w-4 mr-2" />
+                            <span>Pay ₹{task.reward} via UPI/Phone Pe/Google Pay</span>
+                          </div>
+                        </div>
+                      </div>
                     )}
 
                     {task.status === 'available' && (
