@@ -36,8 +36,9 @@ export type User = {
   id: string
   email: string
   name: string
-  tower: string
-  flat: string
+  latitude: number
+  longitude: number
+  address_details: string
   mobile: string
   available_for_tasks: boolean
   email_notifications: boolean
@@ -49,7 +50,9 @@ export type Task = {
   id: string
   title: string
   description?: string
-  location: string
+  latitude: number
+  longitude: number
+  address_details: string
   time: string
   reward: number
   upi_id?: string
@@ -153,8 +156,9 @@ class SQLiteDatabase {
           id TEXT PRIMARY KEY,
           email TEXT UNIQUE NOT NULL,
           name TEXT NOT NULL,
-          tower TEXT NOT NULL,
-          flat TEXT NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL,
+          address_details TEXT NOT NULL,
           mobile TEXT NOT NULL,
           available_for_tasks BOOLEAN DEFAULT TRUE,
           email_notifications BOOLEAN DEFAULT TRUE,
@@ -166,7 +170,9 @@ class SQLiteDatabase {
           id TEXT PRIMARY KEY,
           title TEXT NOT NULL,
           description TEXT,
-          location TEXT NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL,
+          address_details TEXT NOT NULL,
           time TEXT NOT NULL,
           reward INTEGER NOT NULL,
           upi_id TEXT,
@@ -264,8 +270,9 @@ class SQLiteDatabase {
           id: uuidv4(),
           email: 'priya@example.com',
           name: 'Priya Sharma',
-          tower: 'Tower 12',
-          flat: 'Flat 1003',
+          latitude: 12.9716,
+          longitude: 77.5946,
+          address_details: 'Tower 12, Flat 1003, 2nd Floor',
           mobile: '+91 98765 43210',
           available_for_tasks: true,
           email_notifications: true
@@ -274,8 +281,9 @@ class SQLiteDatabase {
           id: uuidv4(),
           email: 'raj@example.com',
           name: 'Raj Kumar',
-          tower: 'Tower 8',
-          flat: 'Flat 405',
+          latitude: 12.9720,
+          longitude: 77.5950,
+          address_details: 'Tower 8, Flat 405, 4th Floor',
           mobile: '+91 98765 43211',
           available_for_tasks: true,
           email_notifications: true
@@ -284,8 +292,9 @@ class SQLiteDatabase {
           id: uuidv4(),
           email: 'anita@example.com',
           name: 'Anita Desai',
-          tower: 'Tower 5',
-          flat: 'Flat 201',
+          latitude: 12.9710,
+          longitude: 77.5940,
+          address_details: 'Tower 5, Flat 201, Ground Floor',
           mobile: '+91 98765 43212',
           available_for_tasks: true,
           email_notifications: true
@@ -294,13 +303,13 @@ class SQLiteDatabase {
 
       // Insert users
       const insertUser = this.db.prepare(`
-        INSERT INTO users (id, email, name, tower, flat, mobile, available_for_tasks, email_notifications)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, email, name, latitude, longitude, address_details, mobile, available_for_tasks, email_notifications)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
 
       for (const user of sampleUsers) {
         insertUser.run(
-          user.id, user.email, user.name, user.tower, user.flat, 
+          user.id, user.email, user.name, user.latitude, user.longitude, user.address_details,
           user.mobile, user.available_for_tasks ? 1 : 0, user.email_notifications ? 1 : 0
         )
       }
@@ -311,7 +320,9 @@ class SQLiteDatabase {
           id: uuidv4(),
           title: 'Help carry groceries',
           description: 'Need help carrying heavy grocery bags from car to flat',
-          location: 'Tower 12, Flat 1003',
+          latitude: sampleUsers[0].latitude,
+          longitude: sampleUsers[0].longitude,
+          address_details: sampleUsers[0].address_details,
           time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
           reward: 50,
           poster_id: sampleUsers[0].id,
@@ -321,7 +332,9 @@ class SQLiteDatabase {
           id: uuidv4(),
           title: 'Water plants while away',
           description: 'Going out of town for 3 days, need someone to water balcony plants',
-          location: 'Tower 8, Flat 405',
+          latitude: sampleUsers[1].latitude,
+          longitude: sampleUsers[1].longitude,
+          address_details: sampleUsers[1].address_details,
           time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           reward: 100,
           poster_id: sampleUsers[1].id,
@@ -331,7 +344,9 @@ class SQLiteDatabase {
           id: uuidv4(),
           title: 'Collect parcel delivery',
           description: 'Expecting Amazon delivery, will be in office',
-          location: 'Tower 5, Flat 201',
+          latitude: sampleUsers[2].latitude,
+          longitude: sampleUsers[2].longitude,
+          address_details: sampleUsers[2].address_details,
           time: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
           reward: 30,
           poster_id: sampleUsers[2].id,
@@ -341,13 +356,13 @@ class SQLiteDatabase {
 
       // Insert tasks
       const insertTask = this.db.prepare(`
-        INSERT INTO tasks (id, title, description, location, time, reward, poster_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (id, title, description, latitude, longitude, address_details, time, reward, poster_id, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
 
       for (const task of sampleTasks) {
         insertTask.run(
-          task.id, task.title, task.description, task.location, 
+          task.id, task.title, task.description, task.latitude, task.longitude, task.address_details,
           task.time, task.reward, task.poster_id, task.status
         )
       }

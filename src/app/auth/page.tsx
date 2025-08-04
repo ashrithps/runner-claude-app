@@ -99,9 +99,9 @@ function AuthPageContent() {
         longitude: coords.longitude
       }))
       setLocationStatus('success')
-    } catch (err: any) {
+    } catch (err) {
       setLocationStatus('error')
-      setError(err.message || 'Failed to get location')
+      setError(err instanceof Error ? err.message : 'Failed to get location')
     }
   }
 

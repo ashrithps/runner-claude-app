@@ -9,12 +9,12 @@ export class DatabaseOperations {
     const now = new Date().toISOString()
     
     const stmt = db.prepare(`
-      INSERT INTO users (id, email, name, tower, flat, mobile, available_for_tasks, email_notifications, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, email, name, latitude, longitude, address_details, mobile, available_for_tasks, email_notifications, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     
     stmt.run(
-      id, userData.email, userData.name, userData.tower, userData.flat,
+      id, userData.email, userData.name, userData.latitude, userData.longitude, userData.address_details,
       userData.mobile, userData.available_for_tasks ? 1 : 0, userData.email_notifications ? 1 : 0,
       now, now
     )
@@ -79,12 +79,12 @@ export class DatabaseOperations {
     const now = new Date().toISOString()
     
     const stmt = db.prepare(`
-      INSERT INTO tasks (id, title, description, location, time, reward, upi_id, poster_id, runner_id, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (id, title, description, latitude, longitude, address_details, time, reward, upi_id, poster_id, runner_id, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     
     stmt.run(
-      id, taskData.title, taskData.description, taskData.location, taskData.time,
+      id, taskData.title, taskData.description, taskData.latitude, taskData.longitude, taskData.address_details, taskData.time,
       taskData.reward, taskData.upi_id, taskData.poster_id, taskData.runner_id,
       taskData.status, now, now
     )

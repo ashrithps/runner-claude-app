@@ -53,10 +53,10 @@ export function LocationGuard({ children, onLocationGranted }: LocationGuardProp
         setLocationStatus('denied')
         setError('Location permission is required to use this app')
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error requesting location permission:', err)
       setLocationStatus('denied')
-      setError(err.message || 'Failed to get location permission')
+      setError(err instanceof Error ? err.message : 'Failed to get location permission')
     }
   }
 

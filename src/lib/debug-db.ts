@@ -12,7 +12,7 @@ export async function debugDatabase() {
     const users = await ReplitDB.getAllUsers()
     console.log('👥 Users:', users.length)
     users.forEach(user => {
-      console.log(`  - ${user.name} (${user.email}) - ${user.tower}, ${user.flat}`)
+      console.log(`  - ${user.name} (${user.email}) - ${user.address_details}`)
     })
 
     // Get all tasks
@@ -52,8 +52,9 @@ export async function createTestData() {
       {
         email: 'test1@example.com',
         name: 'Test User 1',
-        tower: 'Tower A',
-        flat: 'Flat 101',
+        latitude: 12.9716,
+        longitude: 77.5946,
+        address_details: 'Tower A, Flat 101, Ground Floor',
         mobile: '+91 98765 43210',
         available_for_tasks: true,
         email_notifications: true
@@ -61,8 +62,9 @@ export async function createTestData() {
       {
         email: 'test2@example.com',
         name: 'Test User 2',
-        tower: 'Tower B',
-        flat: 'Flat 202',
+        latitude: 12.9720,
+        longitude: 77.5950,
+        address_details: 'Tower B, Flat 202, 2nd Floor',
         mobile: '+91 98765 43211',
         available_for_tasks: true,
         email_notifications: true
@@ -81,7 +83,9 @@ export async function createTestData() {
       {
         title: 'Test Task 1',
         description: 'This is a test task for debugging',
-        location: 'Tower A, Flat 101',
+        latitude: createdUsers[0].latitude,
+        longitude: createdUsers[0].longitude,
+        address_details: createdUsers[0].address_details,
         time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
         reward: 50,
         poster_id: createdUsers[0].id,
@@ -90,7 +94,9 @@ export async function createTestData() {
       {
         title: 'Test Task 2',
         description: 'Another test task for debugging',
-        location: 'Tower B, Flat 202',
+        latitude: createdUsers[1].latitude,
+        longitude: createdUsers[1].longitude,
+        address_details: createdUsers[1].address_details,
         time: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
         reward: 75,
         poster_id: createdUsers[1].id,

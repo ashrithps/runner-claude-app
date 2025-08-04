@@ -32,7 +32,7 @@ export class WhatsAppService {
 I've accepted your task on the Runner app:
 
 📝 *${task.title}*
-📍 Location: ${task.location}
+📍 Location: ${task.address_details}
 ⏰ Time: ${task.time}
 💰 Reward: ₹${task.reward}
 
@@ -60,7 +60,7 @@ Thank you! 😊`
 
 I wanted to coordinate with you about the task: *${task.title}*
 
-📍 Location: ${task.location}
+📍 Location: ${task.address_details}
 ⏰ Time: ${task.time}
 
 Let me know if you have any questions or need to discuss any details!

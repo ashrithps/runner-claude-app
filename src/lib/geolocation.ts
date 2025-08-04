@@ -122,9 +122,9 @@ export async function requestLocationPermission(): Promise<boolean> {
 export function filterTasksByRadius(
   userLat: number,
   userLon: number,
-  tasks: any[],
+  tasks: { latitude?: number; longitude?: number }[],
   radiusKm: number = 3
-): any[] {
+): { latitude?: number; longitude?: number }[] {
   return tasks.filter(task => {
     if (!task.latitude || !task.longitude) return false
     
@@ -140,11 +140,11 @@ export function filterTasksByRadius(
 }
 
 // Sort tasks by distance from user
-export function sortTasksByDistance(
+export function sortTasksByDistance<T extends { latitude?: number; longitude?: number }>(
   userLat: number,
   userLon: number,
-  tasks: any[]
-): Array<any & { distance: number }> {
+  tasks: T[]
+): Array<T & { distance: number }> {
   return tasks
     .map(task => ({
       ...task,

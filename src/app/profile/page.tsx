@@ -60,9 +60,9 @@ export default function ProfilePage() {
         longitude: coords.longitude
       }))
       setLocationStatus('success')
-    } catch (err: any) {
+    } catch (err) {
       setLocationStatus('error')
-      setLocationError(err.message || 'Failed to get location')
+      setLocationError(err instanceof Error ? err.message : 'Failed to get location')
     }
   }
 
