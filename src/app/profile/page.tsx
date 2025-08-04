@@ -6,16 +6,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { User, MapPin, Phone, Edit, Save, Mail, LogOut } from 'lucide-react'
+import { User, MapPin, Phone, Edit, Save, Mail, LogOut, Navigation, CheckCircle, Loader2 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { createDefaultUser } from '@/lib/utils'
 import { UserRatingDisplay } from '@/components/user-rating-display'
+import { getCurrentPosition } from '@/lib/geolocation'
 
 const DEFAULT_PROFILE = createDefaultUser()
 
 export default function ProfilePage() {
   const { user, setUser, myPostedTasks, myAcceptedTasks, signOut } = useAppStore()
   const [isEditing, setIsEditing] = useState(false)
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [locationError, setLocationError] = useState('')
   
   const [editedProfile, setEditedProfile] = useState(user || DEFAULT_PROFILE)
 
@@ -43,6 +46,24 @@ export default function ProfilePage() {
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setEditedProfile(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleUpdateLocation = async () => {
+    setLocationStatus('loading')
+    setLocationError('')
+
+    try {
+      const coords = await getCurrentPosition()
+      setEditedProfile(prev => ({
+        ...prev,
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      }))
+      setLocationStatus('success')
+    } catch (err: any) {
+      setLocationStatus('error')
+      setLocationError(err.message || 'Failed to get location')
+    }
   }
 
   return (
@@ -124,39 +145,73 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tower">Tower</Label>
-              {isEditing ? (
-                <Input
-                  id="tower"
-                  value={editedProfile.tower}
-                  onChange={(e) => handleInputChange('tower', e.target.value)}
-                  placeholder="e.g., Tower 12"
-                />
-              ) : (
-                <div className="flex items-center p-3 bg-gray-50 rounded-md">
-                  <MapPin className="h-4 w-4 mr-3 text-gray-400" />
-                  <span>{user?.tower || DEFAULT_PROFILE.tower}</span>
-                </div>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="address_details">Address Details</Label>
+            {isEditing ? (
+              <Input
+                id="address_details"
+                value={editedProfile.address_details}
+                onChange={(e) => handleInputChange('address_details', e.target.value)}
+                placeholder="e.g., Tower 12, Flat 1003, 2nd Floor"
+              />
+            ) : (
+              <div className="flex items-center p-3 bg-gray-50 rounded-md">
+                <MapPin className="h-4 w-4 mr-3 text-gray-400" />
+                <span>{user?.address_details || DEFAULT_PROFILE.address_details}</span>
+              </div>
+            )}
+            <p className="text-xs text-gray-500">
+              Include building/tower, flat number, floor - helps with task delivery
+            </p>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="flat">Flat</Label>
-              {isEditing ? (
-                <Input
-                  id="flat"
-                  value={editedProfile.flat}
-                  onChange={(e) => handleInputChange('flat', e.target.value)}
-                  placeholder="e.g., Flat 1003"
-                />
-              ) : (
-                <div className="flex items-center p-3 bg-gray-50 rounded-md">
-                  <span>{user?.flat || DEFAULT_PROFILE.flat}</span>
+          <div className="space-y-2">
+            <Label>GPS Location</Label>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Navigation className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">Current Location</span>
                 </div>
+                {isEditing && (
+                  <Button
+                    type="button"
+                    onClick={handleUpdateLocation}
+                    variant="ghost"
+                    size="sm"
+                    disabled={locationStatus === 'loading'}
+                  >
+                    {locationStatus === 'loading' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Update'
+                    )}
+                  </Button>
+                )}
+              </div>
+              
+              {user?.latitude && user?.longitude ? (
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-600">
+                    {user.latitude.toFixed(4)}, {user.longitude.toFixed(4)}
+                  </p>
+                  {locationStatus === 'success' && (
+                    <div className="flex items-center text-green-600 text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Location updated
+                    </div>
+                  )}
+                  {locationStatus === 'error' && (
+                    <p className="text-xs text-red-600">{locationError}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No location set</p>
               )}
             </div>
+            <p className="text-xs text-gray-500">
+              Used to show you tasks within 3km and help runners find you
+            </p>
           </div>
 
           <div className="space-y-2">

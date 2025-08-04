@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { filterTasksByRadius, sortTasksByDistance } from './geolocation'
 
 // Utility to check if a string is a valid UUID
 function isValidUUID(str: string): boolean {
@@ -13,7 +14,9 @@ export interface Task {
   id: string
   title: string
   description?: string
-  location: string
+  latitude: number
+  longitude: number
+  address_details: string
   time: string
   reward: number
   upi_id?: string
@@ -42,8 +45,9 @@ export interface User {
   id: string
   email: string
   name: string
-  tower: string
-  flat: string
+  latitude: number
+  longitude: number
+  address_details: string
   mobile: string
   available_for_tasks: boolean
   email_notifications: boolean
@@ -79,13 +83,15 @@ interface AppState {
   }
 }
 
-// Generate sample data
+// Generate sample data with GPS coordinates
 const generateSampleTasks = (): Task[] => [
   {
     id: '1',
     title: 'Help carry groceries',
     description: 'Need help carrying heavy grocery bags from car to flat',
-    location: 'Tower 12, Flat 1003',
+    latitude: 12.9716,
+    longitude: 77.5946,
+    address_details: 'Tower 12, Flat 1003, 2nd Floor',
     time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     reward: 50,
     poster_id: 'user1',
@@ -98,7 +104,9 @@ const generateSampleTasks = (): Task[] => [
     id: '2',
     title: 'Water plants while away',
     description: 'Going out of town for 3 days, need someone to water balcony plants',
-    location: 'Tower 8, Flat 405',
+    latitude: 12.9720,
+    longitude: 77.5950,
+    address_details: 'Tower 8, Flat 405, 4th Floor',
     time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     reward: 100,
     poster_id: 'user2',
@@ -111,7 +119,9 @@ const generateSampleTasks = (): Task[] => [
     id: '3',
     title: 'Collect parcel delivery',
     description: 'Expecting Amazon delivery, will be in office',
-    location: 'Tower 5, Flat 201',
+    latitude: 12.9710,
+    longitude: 77.5940,
+    address_details: 'Tower 5, Flat 201, Ground Floor',
     time: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
     reward: 30,
     poster_id: 'user3',
@@ -315,22 +325,46 @@ export const useAppStore = create<AppState>()(
           
           if (!response.ok) {
             console.error('Failed to load tasks')
-            // Fallback to sample data
-            const { tasks } = get()
+            // Fallback to sample data with location filtering
+            const { tasks, user } = get()
             if (tasks.length === 0) {
-              set({ tasks: generateSampleTasks() })
+              const sampleTasks = generateSampleTasks()
+              if (user?.latitude && user?.longitude) {
+                const nearbyTasks = filterTasksByRadius(user.latitude, user.longitude, sampleTasks, 3)
+                const sortedTasks = sortTasksByDistance(user.latitude, user.longitude, nearbyTasks)
+                set({ tasks: sortedTasks })
+              } else {
+                set({ tasks: sampleTasks })
+              }
             }
             return
           }
 
-          const { tasks } = await response.json()
-          set({ tasks })
+          const { tasks: allTasks } = await response.json()
+          const { user } = get()
+          
+          // Apply 3km radius filter if user has location
+          if (user?.latitude && user?.longitude) {
+            const nearbyTasks = filterTasksByRadius(user.latitude, user.longitude, allTasks, 3)
+            const sortedTasks = sortTasksByDistance(user.latitude, user.longitude, nearbyTasks)
+            set({ tasks: sortedTasks })
+          } else {
+            // No user location available, show all tasks
+            set({ tasks: allTasks })
+          }
         } catch (err) {
           console.error('Failed to load tasks:', err)
-          // Fallback to sample data
-          const { tasks } = get()
+          // Fallback to sample data with location filtering
+          const { tasks, user } = get()
           if (tasks.length === 0) {
-            set({ tasks: generateSampleTasks() })
+            const sampleTasks = generateSampleTasks()
+            if (user?.latitude && user?.longitude) {
+              const nearbyTasks = filterTasksByRadius(user.latitude, user.longitude, sampleTasks, 3)
+              const sortedTasks = sortTasksByDistance(user.latitude, user.longitude, nearbyTasks)
+              set({ tasks: sortedTasks })
+            } else {
+              set({ tasks: sampleTasks })
+            }
           }
         }
       },

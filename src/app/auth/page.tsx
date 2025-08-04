@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, KeyRound, CheckCircle, Loader2, Send, Users, MessageCircle, CreditCard, Shield } from 'lucide-react'
+import { Mail, KeyRound, CheckCircle, Loader2, Send, Users, MessageCircle, CreditCard, Shield, MapPin } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store'
 import { ClientAuth } from '@/lib/client-auth'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
+import { getCurrentPosition } from '@/lib/geolocation'
 
 type AuthStep = 'email' | 'otp' | 'profile'
 
@@ -23,12 +24,14 @@ function AuthPageContent() {
   
   const [profileData, setProfileData] = useState({
     name: '',
-    tower: '',
-    flat: '',
+    latitude: 0,
+    longitude: 0,
+    address_details: '',
     mobile: '',
     available_for_tasks: true,
     email_notifications: true
   })
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
   const router = useRouter()
   const { setUser } = useAppStore()
@@ -84,8 +87,32 @@ function AuthPageContent() {
     setIsLoading(false)
   }
 
+  const handleGetLocation = async () => {
+    setLocationStatus('loading')
+    setError('')
+
+    try {
+      const coords = await getCurrentPosition()
+      setProfileData(prev => ({
+        ...prev,
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      }))
+      setLocationStatus('success')
+    } catch (err: any) {
+      setLocationStatus('error')
+      setError(err.message || 'Failed to get location')
+    }
+  }
+
   const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (locationStatus !== 'success') {
+      setError('Please allow location access first')
+      return
+    }
+
     setIsLoading(true)
     setError('')
 
@@ -268,65 +295,111 @@ function AuthPageContent() {
           )}
 
           {step === 'profile' && (
-            <form onSubmit={handleCreateProfile} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={profileData.name}
-                  onChange={(e) => handleProfileInputChange('name', e.target.value)}
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="tower">Tower</Label>
-                  <Input
-                    id="tower"
-                    value={profileData.tower}
-                    onChange={(e) => handleProfileInputChange('tower', e.target.value)}
-                    placeholder="e.g., Tower 12"
-                    required
-                  />
+            <div className="space-y-4">
+              {/* Location Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-medium text-blue-900">Location Required</h3>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="flat">Flat</Label>
-                  <Input
-                    id="flat"
-                    value={profileData.flat}
-                    onChange={(e) => handleProfileInputChange('flat', e.target.value)}
-                    placeholder="e.g., Flat 1003"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mobile">Mobile Number</Label>
-                <Input
-                  id="mobile"
-                  value={profileData.mobile}
-                  onChange={(e) => handleProfileInputChange('mobile', e.target.value)}
-                  placeholder="+91 98765 43210"
-                  required
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                <p className="text-sm text-blue-800 mb-3">
+                  We need your GPS location to show you nearby tasks within 3km
+                </p>
+                
+                {locationStatus === 'idle' && (
+                  <Button
+                    type="button"
+                    onClick={handleGetLocation}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    size="sm"
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Get My Location
+                  </Button>
                 )}
-                Complete Setup
-              </Button>
-            </form>
+                
+                {locationStatus === 'loading' && (
+                  <div className="text-center py-2">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
+                    <p className="text-sm text-blue-800">Getting your location...</p>
+                  </div>
+                )}
+                
+                {locationStatus === 'success' && (
+                  <div className="text-center py-2">
+                    <CheckCircle className="h-5 w-5 mx-auto mb-2 text-green-600" />
+                    <p className="text-sm text-green-800">Location captured successfully!</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {profileData.latitude.toFixed(4)}, {profileData.longitude.toFixed(4)}
+                    </p>
+                  </div>
+                )}
+                
+                {locationStatus === 'error' && (
+                  <Button
+                    type="button"
+                    onClick={handleGetLocation}
+                    variant="outline"
+                    className="w-full border-red-300 text-red-700 hover:bg-red-50"
+                    size="sm"
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                )}
+              </div>
+
+              <form onSubmit={handleCreateProfile} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={profileData.name}
+                    onChange={(e) => handleProfileInputChange('name', e.target.value)}
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_details">Address Details</Label>
+                  <Input
+                    id="address_details"
+                    value={profileData.address_details}
+                    onChange={(e) => handleProfileInputChange('address_details', e.target.value)}
+                    placeholder="e.g., Tower 12, Flat 1003, 2nd Floor"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Include building/tower name, flat number, floor - helps with precise delivery
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Input
+                    id="mobile"
+                    value={profileData.mobile}
+                    onChange={(e) => handleProfileInputChange('mobile', e.target.value)}
+                    placeholder="+91 98765 43210"
+                    required
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={isLoading || locationStatus !== 'success'}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Complete Setup
+                </Button>
+              </form>
+            </div>
           )}
         </CardContent>
         </Card>

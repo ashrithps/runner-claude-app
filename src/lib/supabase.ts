@@ -9,7 +9,9 @@ export type Task = {
   id: string
   title: string
   description?: string
-  location: string
+  latitude: number
+  longitude: number
+  address_details: string
   time: string
   reward: number
   upi_id?: string
@@ -24,8 +26,9 @@ export type User = {
   id: string
   email: string
   name: string
-  tower: string
-  flat: string
+  latitude: number
+  longitude: number
+  address_details: string
   mobile: string
   available_for_tasks: boolean
   email_notifications: boolean

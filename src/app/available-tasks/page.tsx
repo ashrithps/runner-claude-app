@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { MapPin, Clock, IndianRupee, User, Loader2, RotateCcw, CheckCircle2 } from 'lucide-react'
+import { MapPin, Clock, IndianRupee, User, Loader2, RotateCcw, CheckCircle2, Navigation } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { UserRatingDisplay } from '@/components/user-rating-display'
+import { formatDistance } from '@/lib/geolocation'
 
 export default function AvailableTasksPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -140,8 +141,8 @@ export default function AvailableTasksPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">📋 Available Tasks</h1>
-        <p className="text-gray-600 mt-1">Help your neighbors and earn rewards</p>
+        <h1 className="text-2xl font-bold text-gray-900">📋 Nearby Tasks</h1>
+        <p className="text-gray-600 mt-1">Tasks within 3km of your location</p>
         <Button 
           onClick={handleRefresh}
           variant="outline"
@@ -160,8 +161,8 @@ export default function AvailableTasksPage() {
             <div className="text-gray-400 mb-4">
               <User className="h-16 w-16 mx-auto mb-4" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks available</h3>
-            <p className="text-gray-600">Check back later for new community tasks!</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No nearby tasks</h3>
+            <p className="text-gray-600">No tasks found within 3km of your location. Check back later!</p>
           </CardContent>
         </Card>
       ) : (
@@ -182,9 +183,17 @@ export default function AvailableTasksPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
-                <div className="flex items-center text-gray-600 text-sm">
-                  <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                  {task.location}
+                <div className="flex items-center justify-between text-gray-600 text-sm">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                    <span>{task.address_details}</span>
+                  </div>
+                  {task.distance !== undefined && (
+                    <div className="flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded-full text-xs font-medium">
+                      <Navigation className="h-3 w-3 mr-1" />
+                      {formatDistance(task.distance)}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center text-gray-600 text-sm">
@@ -230,11 +239,13 @@ export default function AvailableTasksPage() {
         </div>
       )}
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 className="font-medium text-yellow-900 mb-2">🔄 Tasks update in real-time</h3>
-        <p className="text-sm text-yellow-800">
-          New tasks appear automatically. First come, first served!
-        </p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="font-medium text-blue-900 mb-2">📍 Location-Based Matching</h3>
+        <ul className="text-sm text-blue-800 space-y-1">
+          <li>• Only tasks within 3km of your location are shown</li>
+          <li>• Tasks are sorted by distance (nearest first)</li>
+          <li>• Distance helps you choose convenient tasks</li>
+        </ul>
       </div>
     </div>
   )

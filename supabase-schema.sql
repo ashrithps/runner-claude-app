@@ -3,8 +3,9 @@ CREATE TABLE users (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  tower TEXT NOT NULL,
-  flat TEXT NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  address_details TEXT NOT NULL,
   mobile TEXT NOT NULL,
   available_for_tasks BOOLEAN DEFAULT true,
   email_notifications BOOLEAN DEFAULT true,
@@ -17,7 +18,9 @@ CREATE TABLE tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  location TEXT NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  address_details TEXT NOT NULL,
   time TEXT NOT NULL,
   reward INTEGER NOT NULL,
   upi_id TEXT,
@@ -33,6 +36,8 @@ CREATE INDEX idx_tasks_status ON tasks(status);
 CREATE INDEX idx_tasks_poster_id ON tasks(poster_id);
 CREATE INDEX idx_tasks_runner_id ON tasks(runner_id);
 CREATE INDEX idx_tasks_created_at ON tasks(created_at);
+CREATE INDEX idx_tasks_location ON tasks(latitude, longitude);
+CREATE INDEX idx_users_location ON users(latitude, longitude);
 
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

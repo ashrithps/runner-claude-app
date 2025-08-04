@@ -15,8 +15,9 @@ export function createDefaultUser() {
     id: generateUserId(),
     email: 'user@example.com',
     name: 'Community Member',
-    tower: 'Tower 1',
-    flat: 'Flat 101',
+    latitude: 12.9716,
+    longitude: 77.5946,
+    address_details: 'Building A, Flat 101, Ground Floor',
     mobile: '+91 98765 43210',
     available_for_tasks: true,
     email_notifications: true

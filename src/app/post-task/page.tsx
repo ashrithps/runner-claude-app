@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
+import { MapPin, CheckCircle, Loader2 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { createDefaultUser } from '@/lib/utils'
+import { getCurrentPosition } from '@/lib/geolocation'
 
 export default function PostTaskPage() {
   const router = useRouter()
@@ -17,10 +19,48 @@ export default function PostTaskPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    location: '',
+    latitude: 0,
+    longitude: 0,
+    address_details: '',
     reward: ''
   })
   const [selectedDateTime, setSelectedDateTime] = useState<Date | undefined>(undefined)
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [locationError, setLocationError] = useState('')
+
+  // Auto-populate location from user's current location on page load
+  useEffect(() => {
+    if (user?.latitude && user?.longitude) {
+      setFormData(prev => ({
+        ...prev,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        address_details: user.address_details || ''
+      }))
+      setLocationStatus('success')
+    } else {
+      // Try to get current location
+      handleGetCurrentLocation()
+    }
+  }, [user])
+
+  const handleGetCurrentLocation = async () => {
+    setLocationStatus('loading')
+    setLocationError('')
+
+    try {
+      const coords = await getCurrentPosition()
+      setFormData(prev => ({
+        ...prev,
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      }))
+      setLocationStatus('success')
+    } catch (err: any) {
+      setLocationStatus('error')
+      setLocationError(err.message || 'Failed to get location')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,11 +77,18 @@ export default function PostTaskPage() {
       alert('Please select date and time for the task')
       return
     }
+
+    if (locationStatus !== 'success') {
+      alert('Please set a valid location for the task')
+      return
+    }
     
     const taskData = {
       title: formData.title,
       description: formData.description || undefined,
-      location: formData.location,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      address_details: formData.address_details,
       time: selectedDateTime.toISOString(),
       reward: parseInt(formData.reward),
       poster_id: currentUser.id,
@@ -55,7 +102,9 @@ export default function PostTaskPage() {
     setFormData({
       title: '',
       description: '',
-      location: '',
+      latitude: formData.latitude, // Keep location
+      longitude: formData.longitude,
+      address_details: formData.address_details,
       reward: ''
     })
     setSelectedDateTime(undefined)
@@ -103,15 +152,86 @@ export default function PostTaskPage() {
               />
             </div>
 
+            {/* Location Section */}
             <div className="space-y-2">
-              <Label htmlFor="location">Location *</Label>
+              <Label>Task Location *</Label>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">GPS Location</span>
+                </div>
+                
+                {locationStatus === 'idle' && (
+                  <Button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Get Current Location
+                  </Button>
+                )}
+                
+                {locationStatus === 'loading' && (
+                  <div className="text-center py-2">
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2 text-blue-600" />
+                    <p className="text-sm text-gray-600">Getting location...</p>
+                  </div>
+                )}
+                
+                {locationStatus === 'success' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Location Set</span>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleGetCurrentLocation}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                    >
+                      Update Location
+                    </Button>
+                  </div>
+                )}
+                
+                {locationStatus === 'error' && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-600">{locationError}</p>
+                    <Button
+                      type="button"
+                      onClick={handleGetCurrentLocation}
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-red-300 text-red-700 hover:bg-red-50"
+                    >
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address_details">Address Details *</Label>
               <Input
-                id="location"
-                placeholder="e.g., Tower 12, Flat 1003"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
+                id="address_details"
+                placeholder="e.g., Tower 12, Flat 1003, 2nd Floor"
+                value={formData.address_details}
+                onChange={(e) => handleInputChange('address_details', e.target.value)}
                 required
               />
+              <p className="text-xs text-gray-500">
+                Include building/tower, flat number, floor - helps runners find you easily
+              </p>
             </div>
 
             <div className="space-y-2">
