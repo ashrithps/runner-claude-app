@@ -39,10 +39,26 @@ function AuthPageContent() {
   // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = async () => {
-      const result = await ClientAuth.getCurrentUser()
-      if (result.user) {
-        setUser(result.user)
-        router.push('/available-tasks')
+      try {
+        const result = await ClientAuth.getCurrentUser()
+        if (result.user) {
+          console.log('Found existing user:', result.user.email)
+          // Validate user has required GPS fields
+          if (result.user.latitude && result.user.longitude && result.user.address_details) {
+            setUser(result.user)
+            router.push('/available-tasks')
+          } else {
+            console.log('User missing GPS data, staying on auth page for profile completion')
+          }
+        } else if (result.error) {
+          console.log('Auth check failed:', result.error)
+          // Clear any invalid session data
+          await ClientAuth.logout()
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+        // Clear any invalid session data
+        await ClientAuth.logout()
       }
     }
     

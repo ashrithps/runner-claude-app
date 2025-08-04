@@ -29,12 +29,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
         if (response.ok) {
           const { user } = await response.json()
           
-          if (user && user.name && user.tower && user.flat) {
-            // User has complete profile
+          if (user && user.name && user.latitude && user.longitude && user.address_details) {
+            // User has complete GPS profile
             setUser(user)
             setIsAuthenticated(true)
           } else if (user) {
             // User authenticated but incomplete profile, redirect to auth
+            console.log('User has incomplete GPS profile:', user)
             setUser(user)
             router.push('/auth')
             return

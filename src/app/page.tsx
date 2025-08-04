@@ -21,8 +21,8 @@ export default function Home() {
         if (response.ok) {
           const { user: authenticatedUser } = await response.json()
           
-          if (authenticatedUser && authenticatedUser.name && authenticatedUser.tower && authenticatedUser.flat) {
-            // User has complete profile, redirect to available tasks
+          if (authenticatedUser && authenticatedUser.name && authenticatedUser.latitude && authenticatedUser.longitude && authenticatedUser.address_details) {
+            // User has complete GPS profile, redirect to available tasks
             setUser(authenticatedUser)
             router.push('/available-tasks')
             return
@@ -152,7 +152,7 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-gray-900">Local Focus</h3>
-                <p className="text-gray-600 text-sm">Tower & flat-based location system</p>
+                <p className="text-gray-600 text-sm">GPS-based 3km radius task matching</p>
               </div>
               <MapPin className="h-8 w-8 text-purple-500" />
             </div>
