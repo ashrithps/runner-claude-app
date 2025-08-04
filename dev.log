@@ -1,0 +1,21 @@
+
+> runner-app@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.4.5
+   - Local:        http://localhost:3000
+   - Network:      http://172.16.0.139:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2s
+ ○ Compiling /debug ...
+ ✓ Compiled /debug in 2.6s (732 modules)
+ ⨯ [Error [InvariantError]: Invariant: Expected clientReferenceManifest to be defined. This is a bug in Next.js.]
+ ⨯ [Error [InvariantError]: Invariant: Expected clientReferenceManifest to be defined. This is a bug in Next.js.] {
+  page: '/debug'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1082ms (1060 modules)
+ GET /debug 500 in 4582ms
+[?25h

@@ -19,7 +19,8 @@
       "mcp__supabase__get_advisors",
       "Bash(NEXT_DEBUG=1 npm run dev)",
       "Bash(mkdir:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }
