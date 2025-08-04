@@ -145,9 +145,9 @@ export class AuthService {
   }
 }
 
-// Clean up expired sessions every hour
+// Clean up expired OTP sessions every hour (user sessions never expire)
 if (typeof window === 'undefined') {
   setInterval(() => {
-    AuthService.cleanupExpiredSessions()
+    AuthService.cleanupExpiredSessions() // This only cleans up OTP sessions now
   }, 60 * 60 * 1000)
 }

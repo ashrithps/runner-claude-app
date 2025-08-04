@@ -216,7 +216,8 @@ export class DatabaseOperations {
     const db = database.getDB()
     const id = uuidv4()
     const now = new Date()
-    const expiresAt = new Date(now.getTime() + expiresInHours * 60 * 60 * 1000)
+    // Set expiration to far future (year 2099) to effectively never expire
+    const expiresAt = new Date('2099-12-31T23:59:59.999Z')
     
     const stmt = db.prepare(`
       INSERT INTO sessions (id, user_id, email, expires_at, created_at)
@@ -245,14 +246,7 @@ export class DatabaseOperations {
     const session = this.getSession(sessionId)
     if (!session) return { valid: false }
 
-    const now = new Date()
-    const expiresAt = new Date(session.expires_at)
-
-    if (now > expiresAt) {
-      this.deleteSession(sessionId)
-      return { valid: false }
-    }
-
+    // Sessions never expire - always return valid if session exists
     return {
       valid: true,
       userId: session.user_id,
@@ -273,14 +267,8 @@ export class DatabaseOperations {
   }
 
   static cleanupExpiredSessions(): void {
-    const db = database.getDB()
-    const now = new Date().toISOString()
-    const stmt = db.prepare('DELETE FROM sessions WHERE expires_at < ?')
-    const result = stmt.run(now)
-    
-    if (result.changes > 0) {
-      console.log(`Cleaned up ${result.changes} expired sessions`)
-    }
+    // Sessions never expire, so no cleanup needed
+    return
   }
 
   static cleanupExpiredOTPSessions(): void {
@@ -424,10 +412,10 @@ export class DatabaseOperations {
   }
 }
 
-// Setup periodic cleanup (server-side only)
+// Setup periodic cleanup (server-side only) - only for OTP sessions
 if (typeof window === 'undefined') {
   setInterval(() => {
-    DatabaseOperations.cleanupExpiredSessions()
+    // Only cleanup OTP sessions, not user sessions
     DatabaseOperations.cleanupExpiredOTPSessions()
   }, 60 * 60 * 1000) // Every hour
 }
