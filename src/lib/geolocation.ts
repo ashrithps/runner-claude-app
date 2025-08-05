@@ -1,5 +1,10 @@
 // Geolocation utilities for the Runner app
 
+// Browser detection utility
+export function isSafariBrowser(): boolean {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+}
+
 export interface Coordinates {
   latitude: number
   longitude: number
@@ -21,6 +26,15 @@ export function getCurrentPosition(): Promise<Coordinates> {
       return
     }
 
+    const isSafari = isSafariBrowser()
+    
+    // Safari-friendly options
+    const options = {
+      enableHighAccuracy: !isSafari, // Safari can be slow with high accuracy
+      timeout: isSafari ? 15000 : 10000, // Give Safari more time
+      maximumAge: isSafari ? 600000 : 300000 // Safari can cache longer
+    }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
@@ -32,13 +46,21 @@ export function getCurrentPosition(): Promise<Coordinates> {
         let message = 'Unknown location error'
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            message = 'Location access denied by user'
+            if (isSafari) {
+              message = 'Safari blocked location access. Please enable location services in System Preferences > Security & Privacy > Location Services and allow Safari to access your location.'
+            } else {
+              message = 'Location access denied by user'
+            }
             break
           case error.POSITION_UNAVAILABLE:
             message = 'Location information unavailable'
             break
           case error.TIMEOUT:
-            message = 'Location request timed out'
+            if (isSafari) {
+              message = 'Location request timed out. Safari may require location services to be enabled in System Preferences.'
+            } else {
+              message = 'Location request timed out'
+            }
             break
         }
         reject({
@@ -46,11 +68,7 @@ export function getCurrentPosition(): Promise<Coordinates> {
           message
         })
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000, // 10 seconds
-        maximumAge: 300000 // 5 minutes
-      }
+      options
     )
   })
 }
@@ -83,37 +101,46 @@ function toRadians(degrees: number): number {
 
 // Check if location permission is granted
 export async function checkLocationPermission(): Promise<boolean> {
-  if (!navigator.permissions) {
-    // Fallback: try to get location directly
-    try {
-      await getCurrentPosition()
-      return true
-    } catch {
-      return false
-    }
+  // Safari Desktop doesn't support permissions API reliably
+  // Check if we're on Safari first
+  const isSafari = isSafariBrowser()
+  
+  if (isSafari || !navigator.permissions) {
+    // For Safari and browsers without permissions API, 
+    // we can't check permission state without triggering a request
+    return false
   }
 
   try {
     const result = await navigator.permissions.query({ name: 'geolocation' })
     return result.state === 'granted'
   } catch {
-    // Fallback for browsers that don't support permissions API
-    try {
-      await getCurrentPosition()
-      return true
-    } catch {
-      return false
-    }
+    // Fallback for browsers that don't support permissions API properly
+    return false
   }
 }
 
 // Request location permission
 export async function requestLocationPermission(): Promise<boolean> {
+  const isSafari = isSafariBrowser()
+  
+  if (isSafari) {
+    // Safari requires user interaction before requesting location
+    // Show a more helpful message
+    console.log('Safari detected: Location permission requires user interaction')
+  }
+  
   try {
     await getCurrentPosition()
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('Location permission denied:', error)
+    
+    // Provide more specific error messages for Safari
+    if (isSafari && error.code === 1) {
+      throw new Error('Safari requires you to allow location access. Please click "Allow" when prompted, or enable location access in Safari preferences.')
+    }
+    
     return false
   }
 }
@@ -167,4 +194,31 @@ export async function getAddressFromCoordinates(lat: number, lon: number): Promi
   // This would require a geocoding service like Google Maps API
   // For now, return formatted coordinates
   return `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+}
+
+// Get Safari-specific location permission instructions
+export function getSafariLocationInstructions(): string {
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  
+  if (isMac) {
+    return `To enable location access in Safari on macOS:
+1. Open System Preferences > Security & Privacy
+2. Click the Privacy tab
+3. Select Location Services from the left sidebar
+4. Make sure Location Services is enabled
+5. Scroll down and find Safari
+6. Check the box next to Safari to allow location access
+7. Refresh this page and try again`
+  } else {
+    return `To enable location access in Safari:
+1. Go to Safari Preferences > Websites
+2. Select Location from the left sidebar  
+3. Find this website and set it to "Allow"
+4. Refresh this page and try again`
+  }
+}
+
+// Check if we should show Safari-specific help
+export function shouldShowSafariHelp(error: any): boolean {
+  return isSafariBrowser() && error?.code === 1 // PERMISSION_DENIED
 }

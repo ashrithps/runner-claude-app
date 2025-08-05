@@ -477,7 +477,7 @@ export class NotificationService {
                                   <tr>
                                     <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">💰 Reward:</td>
                                     <td style="padding: 8px 0;">
-                                      <span style="background-color: #dc2626; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">₹${task.reward}</span>
+                                      <span style="background-color: #dc2626; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">${formatCurrency(task.reward, currency)}</span>
                                     </td>
                                   </tr>
                                   ${task.description ? `

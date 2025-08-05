@@ -19,7 +19,7 @@ export async function debugDatabase() {
     const tasks = await ReplitDB.getAllTasks()
     console.log('📋 Tasks:', tasks.length)
     tasks.forEach(task => {
-      console.log(`  - ${task.title} (${task.status}) - ₹${task.reward}`)
+      console.log(`  - ${task.title} (${task.status}) - ${task.reward}`)
     })
 
     // Get notifications
