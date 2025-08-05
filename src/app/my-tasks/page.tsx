@@ -4,14 +4,15 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, Clock, IndianRupee, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
+import { MapPin, Clock, DollarSign, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
 import { useAppStore, Task } from '@/lib/store'
+import { formatCurrency } from '@/lib/currency'
 import { WhatsAppService } from '@/lib/whatsapp'
 import { TaskRating } from '@/components/rating-system'
 import { UserRatingDisplay } from '@/components/user-rating-display'
 
 export default function MyTasksPage() {
-  const { myPostedTasks, myAcceptedTasks, completeTask, user, loadMyTasks } = useAppStore()
+  const { myPostedTasks, myAcceptedTasks, completeTask, user, loadMyTasks, currency } = useAppStore()
 
   useEffect(() => {
     loadMyTasks()
@@ -23,7 +24,7 @@ export default function MyTasksPage() {
 
   const handleContactPoster = (task: Task) => {
     if (!user || !task.poster_mobile) return
-    WhatsAppService.contactTaskPoster(task, user.name, task.poster_mobile)
+    WhatsAppService.contactTaskPoster(task, user.name, task.poster_mobile, currency)
   }
 
   const handleContactRunner = (task: Task) => {
@@ -33,7 +34,7 @@ export default function MyTasksPage() {
 
   const handleNotifyCompletion = (task: Task) => {
     if (!task.poster_mobile) return
-    WhatsAppService.notifyTaskCompletion(task, task.poster_mobile)
+    WhatsAppService.notifyTaskCompletion(task, task.poster_mobile, currency)
   }
 
   const formatTimeAgo = (createdAt: string) => {
@@ -129,8 +130,8 @@ export default function MyTasksPage() {
                       <div className="flex items-center gap-2 mt-2">
                         {getStatusBadge(task.status)}
                         <div className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
-                          <IndianRupee className="h-3 w-3 mr-1" />
-                          {task.reward}
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          {formatCurrency(task.reward, currency)}
                         </div>
                       </div>
                     </div>
@@ -212,7 +213,7 @@ export default function MyTasksPage() {
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
                         <h4 className="font-medium text-green-900 mb-1">🎉 Task Completed!</h4>
                         <p className="text-sm text-green-800">
-                          Contact {task.poster_name} for payment of ₹{task.reward}
+                          Contact {task.poster_name} for payment of {formatCurrency(task.reward, currency)}
                         </p>
                       </div>
                     )}
@@ -248,8 +249,8 @@ export default function MyTasksPage() {
                       <div className="flex items-center gap-2 mt-2">
                         {getStatusBadge(task.status)}
                         <div className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-                          <IndianRupee className="h-3 w-3 mr-1" />
-                          {task.reward}
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          {formatCurrency(task.reward, currency)}
                         </div>
                       </div>
                     </div>
@@ -324,8 +325,8 @@ export default function MyTasksPage() {
                             </button>
                           </div>
                           <div className="flex items-center text-green-800">
-                            <IndianRupee className="h-4 w-4 mr-2" />
-                            <span>Pay ₹{task.reward} via UPI/Phone Pe/Google Pay</span>
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            <span>Pay {formatCurrency(task.reward, currency)} via mobile payment apps</span>
                           </div>
                         </div>
                       </div>

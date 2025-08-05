@@ -1,4 +1,5 @@
 import type { Task } from './store'
+import { formatCurrency, type CurrencyInfo, FALLBACK_CURRENCY } from './currency'
 
 export class WhatsAppService {
   // Clean phone number to international format
@@ -6,27 +7,32 @@ export class WhatsAppService {
     // Remove all non-digit characters
     const cleaned = phone.replace(/\D/g, '')
     
-    // If starts with +91, remove the +
-    if (phone.startsWith('+91')) {
+    // Handle various international formats
+    if (phone.startsWith('+')) {
       return cleaned
     }
     
-    // If starts with 91 and has 12 digits, it's already in international format
+    // If starts with 91 and has 12 digits (Indian format)
     if (cleaned.startsWith('91') && cleaned.length === 12) {
       return cleaned
     }
     
-    // If it's a 10-digit Indian number, add 91 prefix
+    // If starts with 1 and has 11 digits (US/Canada format)
+    if (cleaned.startsWith('1') && cleaned.length === 11) {
+      return cleaned
+    }
+    
+    // If it's a 10-digit number, assume it needs country code (default to India for backward compatibility)
     if (cleaned.length === 10) {
       return '91' + cleaned
     }
     
-    // Return as is if we can't determine the format
+    // Return as is for other international formats
     return cleaned
   }
 
   // Generate WhatsApp message for task assignment
-  static generateTaskAssignmentMessage(task: Task, posterName: string): string {
+  static generateTaskAssignmentMessage(task: Task, posterName: string, currency: CurrencyInfo = FALLBACK_CURRENCY): string {
     const googleMapsLink = task.latitude && task.longitude 
       ? `\n🗺️ Location on Maps: https://www.google.com/maps?q=${task.latitude},${task.longitude}` 
       : ''
@@ -38,7 +44,7 @@ I've accepted your task on the Runner app:
 📝 *${task.title}*
 📍 Address: ${task.address_details}${googleMapsLink}
 ⏰ Time: ${task.time}
-💰 Reward: ₹${task.reward}
+💰 Reward: ${formatCurrency(task.reward, currency)}
 
 ${task.description ? `Description: ${task.description}\n\n` : ''}I'm ready to help! Please let me know any additional details or instructions.
 
@@ -46,14 +52,14 @@ Thanks!`
   }
 
   // Generate WhatsApp message for task completion
-  static generateTaskCompletionMessage(task: Task): string {
+  static generateTaskCompletionMessage(task: Task, currency: CurrencyInfo = FALLBACK_CURRENCY): string {
     return `Hi! 👋
 
 I've completed the task: *${task.title}*
 
 The task has been marked as complete in the Runner app. Please confirm once you've verified everything is done to your satisfaction.
 
-${task.upi_id ? `For payment, my UPI ID is: ${task.upi_id}` : 'Please let me know your preferred payment method.'}
+'Please contact me via mobile for payment of ' + formatCurrency(task.reward, currency) + '.'
 
 Thank you! 😊`
   }
@@ -114,8 +120,8 @@ Thanks!`
   }
 
   // Contact task poster (used by task accepter)
-  static contactTaskPoster(task: Task, accepterName: string, posterPhone: string): void {
-    const message = this.generateTaskAssignmentMessage(task, task.poster_name || 'Task Poster')
+  static contactTaskPoster(task: Task, accepterName: string, posterPhone: string, currency: CurrencyInfo = FALLBACK_CURRENCY): void {
+    const message = this.generateTaskAssignmentMessage(task, task.poster_name || 'Task Poster', currency)
     this.openWhatsApp(posterPhone, message)
   }
 
@@ -126,8 +132,8 @@ Thanks!`
   }
 
   // Notify task completion (used by task accepter)
-  static notifyTaskCompletion(task: Task, posterPhone: string): void {
-    const message = this.generateTaskCompletionMessage(task)
+  static notifyTaskCompletion(task: Task, posterPhone: string, currency: CurrencyInfo = FALLBACK_CURRENCY): void {
+    const message = this.generateTaskCompletionMessage(task, currency)
     this.openWhatsApp(posterPhone, message)
   }
 
@@ -148,7 +154,13 @@ Thanks!`
       return `+91 ${without91.substring(0, 5)} ${without91.substring(5)}`
     }
     
-    // Return with + prefix for international numbers
+    // Format US/Canada numbers as +1 XXX XXX XXXX
+    if (cleaned.startsWith('1') && cleaned.length === 11) {
+      const without1 = cleaned.substring(1)
+      return `+1 ${without1.substring(0, 3)} ${without1.substring(3, 6)} ${without1.substring(6)}`
+    }
+    
+    // Return with + prefix for other international numbers
     return `+${cleaned}`
   }
 

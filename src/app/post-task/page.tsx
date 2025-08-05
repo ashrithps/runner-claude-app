@@ -12,13 +12,14 @@ import { AnimatedCard } from '@/components/ui/animated-card'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { MapPin, CheckCircle, Loader2, Sparkles, Zap, Heart, Users, Clock, Gift, Star, Plus } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
+import { getCurrencySymbol } from '@/lib/currency'
 import { createDefaultUser } from '@/lib/utils'
 import { getCurrentPosition } from '@/lib/geolocation'
 import { useToast } from '@/components/ui/toast'
 
 export default function PostTaskPage() {
   const router = useRouter()
-  const { addTask, user, setUser } = useAppStore()
+  const { addTask, user, setUser, currency, currencyLoading } = useAppStore()
   const { showToast } = useToast()
   const [formData, setFormData] = useState({
     title: '',
@@ -623,7 +624,7 @@ export default function PostTaskPage() {
                   animate={{ scale: focusedField === 'reward' ? 1.5 : 1 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 />
-                Reward Amount (₹) *
+                Reward Amount ({getCurrencySymbol(currency)}) *
               </Label>
               <motion.div
                 whileFocus={{ scale: 1.02 }}
@@ -642,7 +643,7 @@ export default function PostTaskPage() {
                   min="1"
                   className="border-2 transition-all duration-200 focus:border-yellow-500 focus:shadow-lg pl-8"
                 />
-                <div className="absolute left-3 top-3 text-gray-500">₹</div>
+                <div className="absolute left-3 top-3 text-gray-500">{getCurrencySymbol(currency)}</div>
                 {formData.reward && parseInt(formData.reward) > 0 && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0 }}

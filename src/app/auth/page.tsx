@@ -176,7 +176,7 @@ function AuthPageContent() {
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
                   <CreditCard className="h-5 w-5 text-green-600" />
-                  <span>Earn small rewards paid via UPI</span>
+                  <span>Earn small rewards for helping others</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
                   <MessageCircle className="h-5 w-5 text-purple-600" />

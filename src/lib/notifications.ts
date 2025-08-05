@@ -1,5 +1,6 @@
 import { ReplitDB } from './replitdb'
 import type { Notification, Task } from './replitdb'
+import { formatCurrency, type CurrencyInfo, FALLBACK_CURRENCY } from './currency'
 
 export type NotificationType = 'task_assigned' | 'task_completed' | 'task_cancelled'
 
@@ -76,7 +77,8 @@ export class NotificationService {
     task: Task,
     assigneeName?: string,
     assigneePhone?: string,
-    assigneeWhatsApp?: string
+    assigneeWhatsApp?: string,
+    currency: CurrencyInfo = FALLBACK_CURRENCY
   ) {
     // Use environment variable for app URL, fallback to production domain
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://runner.loop.me'
@@ -146,11 +148,11 @@ export class NotificationService {
                 </tr>
                 <tr>
                   <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 500;">💵 Amount:</td>
-                  <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 600;">₹${reward}</td>
+                  <td style="padding: 4px 0; color: #166534; font-size: 14px; font-weight: 600;">${formatCurrency(reward, currency)}</td>
                 </tr>
                 <tr>
                   <td colspan="2" style="padding: 8px 0 4px; color: #166534; font-size: 12px;">
-                    Pay via UPI, PhonePe, Google Pay, or Paytm
+                    Pay via mobile payment apps or direct transfer
                   </td>
                 </tr>
               </table>
@@ -221,7 +223,7 @@ export class NotificationService {
                                   <tr>
                                     <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">💰 Reward:</td>
                                     <td style="padding: 8px 0;">
-                                      <span style="background-color: #10b981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">₹${task.reward}</span>
+                                      <span style="background-color: #10b981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">${formatCurrency(task.reward, currency)}</span>
                                     </td>
                                   </tr>
                                   ${task.description ? `
@@ -351,15 +353,9 @@ export class NotificationService {
                                   <tr>
                                     <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">💰 Reward:</td>
                                     <td style="padding: 8px 0;">
-                                      <span style="background-color: #10b981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">₹${task.reward}</span>
+                                      <span style="background-color: #10b981; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600;">${formatCurrency(task.reward, currency)}</span>
                                     </td>
                                   </tr>
-                                  ${task.upi_id ? `
-                                  <tr>
-                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">💳 UPI ID:</td>
-                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600; font-family: monospace;">${task.upi_id}</td>
-                                  </tr>
-                                  ` : ''}
                                 </table>
                               </td>
                             </tr>

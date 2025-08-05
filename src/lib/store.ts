@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { filterTasksByRadius, sortTasksByDistance } from './geolocation'
+import { detectCurrencyFromLocation, type CurrencyInfo, FALLBACK_CURRENCY } from './currency'
 
 // Utility to check if a string is a valid UUID
 function isValidUUID(str: string): boolean {
@@ -60,10 +61,14 @@ interface AppState {
   tasks: Task[]
   myPostedTasks: Task[]
   myAcceptedTasks: Task[]
+  currency: CurrencyInfo
+  currencyLoading: boolean
   
   // Actions
   setUser: (user: User) => void
   clearUser: () => void
+  initializeCurrency: () => Promise<void>
+  setCurrency: (currency: CurrencyInfo) => void
   ensureUserInDatabase: (user: User) => Promise<boolean>
   addTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
   acceptTask: (taskId: string, runnerId: string, runnerName: string) => Promise<void>
@@ -139,10 +144,34 @@ export const useAppStore = create<AppState>()(
       tasks: [],
       myPostedTasks: [],
       myAcceptedTasks: [],
+      currency: FALLBACK_CURRENCY,
+      currencyLoading: false,
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => {
+        set({ user })
+        // Initialize currency when user is set
+        get().initializeCurrency()
+      },
 
       clearUser: () => set({ user: null, myPostedTasks: [], myAcceptedTasks: [] }),
+
+      initializeCurrency: async () => {
+        const state = get()
+        if (state.currencyLoading) return
+
+        set({ currencyLoading: true })
+        
+        try {
+          const user = state.user
+          const currency = await detectCurrencyFromLocation(user?.latitude, user?.longitude)
+          set({ currency, currencyLoading: false })
+        } catch (error) {
+          console.error('Failed to detect currency:', error)
+          set({ currency: FALLBACK_CURRENCY, currencyLoading: false })
+        }
+      },
+
+      setCurrency: (currency) => set({ currency }),
 
       signOut: async () => {
         try {
@@ -416,7 +445,8 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         user: state.user,
         myPostedTasks: state.myPostedTasks,
-        myAcceptedTasks: state.myAcceptedTasks
+        myAcceptedTasks: state.myAcceptedTasks,
+        currency: state.currency
       }),
       onRehydrateStorage: () => (state) => {
         // Validate and clean up any invalid UUIDs from old data
