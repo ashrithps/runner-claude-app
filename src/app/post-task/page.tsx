@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -212,144 +212,75 @@ export default function PostTaskPage() {
             </div>
 
             {/* Location Section */}
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-            >
-              <Label className="flex items-center text-gray-700 font-medium">
-                <motion.div
-                  className="w-2 h-2 bg-green-600 rounded-full mr-2"
-                  animate={{ scale: locationStatus === 'loading' ? [1, 1.5, 1] : 1 }}
-                  transition={{ duration: 1, repeat: locationStatus === 'loading' ? Infinity : 0 }}
-                />
+            <div className="space-y-2">
+              <Label className="text-gray-700 font-medium">
                 Task Location *
               </Label>
-              <motion.div 
-                className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-4 shadow-sm"
-                whileHover={{ shadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-                transition={{ duration: 0.2 }}
-              >
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center space-x-2 mb-2">
                   <MapPin className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-gray-700">GPS Location</span>
                 </div>
                 
-                <AnimatePresence mode="wait">
-                  {locationStatus === 'idle' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <AnimatedButton
-                        type="button"
-                        onClick={handleGetCurrentLocation}
-                        variant="outline"
-                        animation="bounce"
-                        haptic
-                        className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
-                      >
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Get Current Location
-                      </AnimatedButton>
-                    </motion.div>
-                  )}
-                  
-                  {locationStatus === 'loading' && (
-                    <motion.div
-                      className="text-center py-4"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                    >
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="inline-block"
-                      >
-                        <Loader2 className="h-6 w-6 text-blue-600 mb-2" />
-                      </motion.div>
-                      <p className="text-sm text-gray-600">Getting your location...</p>
-                      <div className="mt-2 flex justify-center space-x-1">
-                        {[0, 1, 2].map((i) => (
-                          <motion.div
-                            key={i}
-                            className="w-2 h-2 bg-blue-400 rounded-full"
-                            animate={{ scale: [1, 1.5, 1] }}
-                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                          />
-                        ))}
+                {locationStatus === 'idle' && (
+                  <Button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    variant="outline"
+                    className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Get Current Location
+                  </Button>
+                )}
+                
+                {locationStatus === 'loading' && (
+                  <div className="text-center py-4">
+                    <Loader2 className="h-6 w-6 text-blue-600 mb-2 mx-auto animate-spin" />
+                    <p className="text-sm text-gray-600">Getting your location...</p>
+                  </div>
+                )}
+                
+                {locationStatus === 'success' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">Location Set Successfully!</p>
+                        <p className="text-xs text-green-600">
+                          Lat: {formData.latitude.toFixed(4)}, Lng: {formData.longitude.toFixed(4)}
+                        </p>
                       </div>
-                    </motion.div>
-                  )}
-                  
-                  {locationStatus === 'success' && (
-                    <motion.div
-                      className="space-y-3"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                    >
-                      <motion.div 
-                        className="flex items-center space-x-2 text-green-700 bg-green-50 rounded-lg p-3"
-                        initial={{ x: -20 }}
-                        animate={{ x: 0 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
-                        >
-                          <CheckCircle className="h-5 w-5" />
-                        </motion.div>
-                        <span className="text-sm font-medium">Location captured successfully!</span>
-                      </motion.div>
-                      <p className="text-xs text-gray-600 font-mono bg-gray-100 p-2 rounded">
-                        📍 {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
-                      </p>
-                      <AnimatedButton
-                        type="button"
-                        onClick={handleGetCurrentLocation}
-                        variant="ghost"
-                        animation="scale"
-                        className="w-full text-green-700 hover:bg-green-50"
-                      >
-                        📱 Update Location
-                      </AnimatedButton>
-                    </motion.div>
-                  )}
-                  
-                  {locationStatus === 'error' && (
-                    <div className="space-y-3">
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <p className="text-sm text-red-600 font-medium">⚠️ {locationError}</p>
-                        {showSafariHelp && (
-                          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm font-semibold text-blue-800 mb-2">Safari Location Help:</p>
-                            <pre className="text-xs text-blue-700 whitespace-pre-wrap">
-                              {getSafariLocationInstructions()}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={handleGetCurrentLocation}
-                        variant="outline"
-                        className="w-full border-red-300 text-red-700 hover:bg-red-50"
-                      >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Try Again
-                      </Button>
                     </div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            </motion.div>
+                  </div>
+                )}
+                
+                {locationStatus === 'error' && (
+                  <div className="space-y-3">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-sm text-red-600 font-medium">⚠️ {locationError}</p>
+                      {showSafariHelp && (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm font-semibold text-blue-800 mb-2">Safari Location Help:</p>
+                          <pre className="text-xs text-blue-700 whitespace-pre-wrap">
+                            {getSafariLocationInstructions()}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleGetCurrentLocation}
+                      variant="outline"
+                      className="w-full border-red-300 text-red-700 hover:bg-red-50"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="address_details" className="text-gray-700 font-medium">
@@ -404,19 +335,7 @@ export default function PostTaskPage() {
                 />
                 <div className="absolute left-3 top-3 text-gray-500">{getCurrencySymbol(currency)}</div>
               </div>
-              <AnimatePresence>
-                {focusedField === 'reward' && (
-                  <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="text-xs text-yellow-600 mt-1"
-                  >
-                    💝 Fair rewards get better response rates!
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </motion.div>
+            </div>
 
             <div className="pt-4">
               <Button 
