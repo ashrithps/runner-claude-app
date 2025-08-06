@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AuthService } from '@/lib/auth'
+import { initializeApp } from '@/lib/startup'
 
 export async function GET(request: NextRequest) {
   try {
+    // Initialize app (run migrations) if needed
+    await initializeApp().catch(error => {
+      console.warn('Migration failed, continuing anyway:', error)
+    })
     const sessionId = request.cookies.get('session')?.value
 
     if (!sessionId) {

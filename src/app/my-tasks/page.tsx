@@ -12,15 +12,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { MapPin, Clock, Coins, User, CheckCircle, PlayCircle, MessageCircle, Phone, Trash2 } from 'lucide-react'
+import { MapPin, Clock, Coins, User, CheckCircle, PlayCircle, MessageCircle, Phone, Trash2, Archive } from 'lucide-react'
 import { useAppStore, Task } from '@/lib/store'
 import { formatCurrency } from '@/lib/currency'
 import { WhatsAppService } from '@/lib/whatsapp'
 import { TaskRating } from '@/components/rating-system'
 import { UserRatingDisplay } from '@/components/user-rating-display'
+import { useToast } from '@/components/ui/toast'
 
 export default function MyTasksPage() {
-  const { myPostedTasks, myAcceptedTasks, completeTask, deleteTask, user, loadMyTasks, currency } = useAppStore()
+  const { myPostedTasks, myAcceptedTasks, completeTask, deleteTask, markAsPaid, user, loadMyTasks, currency } = useAppStore()
+  const { showToast } = useToast()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null)
 
@@ -30,6 +32,15 @@ export default function MyTasksPage() {
 
   const handleMarkCompleted = (taskId: string) => {
     completeTask(taskId)
+  }
+
+  const handleMarkAsPaid = async (taskId: string) => {
+    try {
+      await markAsPaid(taskId)
+      showToast('Task marked as paid and archived!', 'success')
+    } catch (error) {
+      showToast('Failed to mark task as paid', 'error')
+    }
   }
 
   const handleContactPoster = (task: Task) => {
@@ -129,6 +140,8 @@ export default function MyTasksPage() {
         return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">In Progress</span>
       case 'completed':
         return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Completed</span>
+      case 'paid':
+        return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">Paid & Archived</span>
       default:
         return null
     }
@@ -142,13 +155,14 @@ export default function MyTasksPage() {
       </div>
 
       <Tabs defaultValue="accepted" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="accepted">Running Tasks</TabsTrigger>
           <TabsTrigger value="posted">Posted Tasks</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accepted" className="space-y-4 mt-6">
-          {myAcceptedTasks.length === 0 ? (
+          {myAcceptedTasks.filter(task => task.status !== 'paid').length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <PlayCircle className="h-16 w-16 mx-auto mb-4 text-gray-400" />
@@ -157,7 +171,7 @@ export default function MyTasksPage() {
               </CardContent>
             </Card>
           ) : (
-            myAcceptedTasks.map((task) => (
+            myAcceptedTasks.filter(task => task.status !== 'paid').map((task) => (
               <Card key={task.id} className="border-l-4 border-l-green-500">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -267,7 +281,7 @@ export default function MyTasksPage() {
         </TabsContent>
 
         <TabsContent value="posted" className="space-y-4 mt-6">
-          {myPostedTasks.length === 0 ? (
+          {myPostedTasks.filter(task => task.status !== 'paid').length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <User className="h-16 w-16 mx-auto mb-4 text-gray-400" />
@@ -276,7 +290,7 @@ export default function MyTasksPage() {
               </CardContent>
             </Card>
           ) : (
-            myPostedTasks.map((task) => (
+            myPostedTasks.filter(task => task.status !== 'paid').map((task) => (
               <Card key={task.id} className="border-l-4 border-l-blue-500">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -388,11 +402,21 @@ export default function MyTasksPage() {
                     )}
 
                     {task.status === 'completed' && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
-                        <h4 className="font-medium text-green-900 mb-1">✅ Task Completed</h4>
-                        <p className="text-sm text-green-800">
-                          Completed by {task.runner_name}. Remember to pay the reward amount!
-                        </p>
+                      <div className="space-y-3 mt-4">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <h4 className="font-medium text-green-900 mb-1">✅ Task Completed</h4>
+                          <p className="text-sm text-green-800">
+                            Completed by {task.runner_name}. Remember to pay the reward amount!
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => handleMarkAsPaid(task.id)}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                          size="lg"
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Mark as Paid
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -403,6 +427,96 @@ export default function MyTasksPage() {
                     <TaskRating task={task} />
                   </div>
                 )}
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="archived" className="space-y-4 mt-6">
+          {[...myPostedTasks, ...myAcceptedTasks].filter(task => task.status === 'paid').length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Archive className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No archived tasks</h3>
+                <p className="text-gray-600">Completed and paid tasks will appear here</p>
+              </CardContent>
+            </Card>
+          ) : (
+            [...myPostedTasks, ...myAcceptedTasks]
+              .filter(task => task.status === 'paid')
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+              .map((task) => (
+              <Card key={task.id} className="border-l-4 border-l-purple-500">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-lg">{task.title}</h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        {getStatusBadge(task.status)}
+                        <div className="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm font-medium">
+                          <Coins className="h-3 w-3 mr-1" />
+                          {formatCurrency(task.reward, currency)}
+                        </div>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {task.poster_id === user?.id ? 'Posted by me' : 'Completed by me'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                      <div className="flex-1">
+                        <div className="mb-2">{task.address_details}</div>
+                        {task.latitude && task.longitude && (
+                          <Button
+                            onClick={() => window.open(`https://www.google.com/maps?q=${task.latitude},${task.longitude}`, '_blank')}
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 py-1 text-xs border-purple-200 text-purple-700 hover:bg-purple-50"
+                          >
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Open in Maps
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                      Archived {formatTimeAgo(task.updated_at)} • Originally for {formatTaskTime(task.time)}
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <User className="h-4 w-4 mr-2 text-gray-400" />
+                      {task.poster_id === user?.id ? (
+                        <span>Completed by <UserRatingDisplay 
+                          userId={task.runner_id || ''} 
+                          userName={task.runner_name || 'Unknown'}
+                          size="sm"
+                          className="ml-1"
+                        /></span>
+                      ) : (
+                        <span>Task by <UserRatingDisplay 
+                          userId={task.poster_id} 
+                          userName={task.poster_name}
+                          size="sm"
+                          className="ml-1"
+                        /></span>
+                      )}
+                    </div>
+
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-4">
+                      <h4 className="font-medium text-purple-900 mb-1">💰 Payment Completed</h4>
+                      <p className="text-sm text-purple-800">
+                        This task has been completed and payment has been confirmed. 
+                        {task.poster_id === user?.id ? ' Thank you for using our community!' : ' Great job helping your neighbor!'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
             ))
           )}

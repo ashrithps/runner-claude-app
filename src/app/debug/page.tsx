@@ -12,6 +12,8 @@ export default function DebugPage() {
   const [testDataStatus, setTestDataStatus] = useState<string>('Not created')
   const [debugStatus, setDebugStatus] = useState<string>('Not run')
   const [envStatus, setEnvStatus] = useState<string>('Not checked')
+  const [migrationStatus, setMigrationStatus] = useState<string>('Not checked')
+  const [migrationDetails, setMigrationDetails] = useState<Record<string, unknown> | null>(null)
 
   const handleTestConnection = async () => {
     setConnectionStatus('Testing...')
@@ -49,6 +51,47 @@ export default function DebugPage() {
   const handleCheckEnvironment = async () => {
     setEnvStatus('Checking...')
     setEnvStatus('✅ SQLite Database Active')
+  }
+
+  const handleCheckMigrations = async () => {
+    setMigrationStatus('Checking...')
+    try {
+      const response = await fetch('/api/migrate')
+      const data = await response.json()
+      setMigrationDetails(data)
+      if (data.success) {
+        const { status } = data
+        if (status.upToDate) {
+          setMigrationStatus(`✅ Up to date (${status.completed} migrations)`)
+        } else {
+          setMigrationStatus(`⚠️ ${status.pending} pending migrations`)
+        }
+      } else {
+        setMigrationStatus('❌ Failed to check')
+      }
+    } catch (error) {
+      setMigrationStatus('❌ Failed to check')
+    }
+  }
+
+  const handleRunMigrations = async () => {
+    setMigrationStatus('Running migrations...')
+    try {
+      const response = await fetch('/api/migrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'migrate' })
+      })
+      const data = await response.json()
+      setMigrationDetails(data)
+      if (data.success) {
+        setMigrationStatus('✅ Migrations completed!')
+      } else {
+        setMigrationStatus('❌ Migration failed')
+      }
+    } catch (error) {
+      setMigrationStatus('❌ Migration failed')
+    }
   }
 
   return (
@@ -179,6 +222,79 @@ export default function DebugPage() {
           
           <p className="text-sm text-gray-600">
             Clear storage will remove old invalid user IDs and reload the page
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>🔄 Database Migrations</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span>Migration Status:</span>
+            <span className="font-medium">{migrationStatus}</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              onClick={handleCheckMigrations}
+              variant="outline"
+              size="sm"
+            >
+              Check Status
+            </Button>
+            <Button 
+              onClick={handleRunMigrations}
+              variant="default"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Run Migrations
+            </Button>
+          </div>
+
+          {migrationDetails && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Migration Details:</h4>
+              <div className="text-sm space-y-1">
+                {migrationDetails.status && (
+                  <>
+                    <p>Completed: {migrationDetails.status.completed || 0}</p>
+                    <p>Pending: {migrationDetails.status.pending || 0}</p>
+                    <p>Total: {migrationDetails.status.total || 0}</p>
+                  </>
+                )}
+                {migrationDetails.completedMigrations && migrationDetails.completedMigrations.length > 0 && (
+                  <div className="mt-2">
+                    <p className="font-medium">Completed Migrations:</p>
+                    <ul className="ml-2 space-y-1">
+                      {migrationDetails.completedMigrations.map((migration: Record<string, unknown>) => (
+                        <li key={migration.id as string} className="text-xs">
+                          ✅ {migration.id} ({new Date(migration.executed_at as string).toLocaleDateString()})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {migrationDetails.pendingMigrations && migrationDetails.pendingMigrations.length > 0 && (
+                  <div className="mt-2">
+                    <p className="font-medium">Pending Migrations:</p>
+                    <ul className="ml-2 space-y-1">
+                      {migrationDetails.pendingMigrations.map((migration: string) => (
+                        <li key={migration} className="text-xs">
+                          ⏳ {migration}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <p className="text-sm text-gray-600">
+            Migrations update the database schema safely. Always check status first.
           </p>
         </CardContent>
       </Card>

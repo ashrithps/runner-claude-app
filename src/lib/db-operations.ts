@@ -2,6 +2,41 @@ import { database, User, Task, Notification, OTPSession, Session, Rating } from 
 import { v4 as uuidv4 } from 'uuid'
 
 export class DatabaseOperations {
+  // Raw SQL execution for migrations
+  static async executeRaw(sql: string, params?: unknown[]): Promise<unknown[]> {
+    const db = database.getDB()
+    
+    try {
+      // Split SQL by semicolons to handle multiple statements
+      const statements = sql
+        .split(';')
+        .map(stmt => stmt.trim())
+        .filter(stmt => stmt.length > 0)
+      
+      const results: unknown[] = []
+      
+      for (const statement of statements) {
+        if (statement.toUpperCase().startsWith('SELECT')) {
+          // For SELECT statements, return the results
+          const stmt = db.prepare(statement)
+          const result = params ? stmt.all(...params) : stmt.all()
+          results.push(...(Array.isArray(result) ? result : [result]))
+        } else {
+          // For other statements (INSERT, UPDATE, DELETE, CREATE, etc.)
+          const stmt = db.prepare(statement)
+          const result = params ? stmt.run(...params) : stmt.run()
+          results.push(result)
+        }
+      }
+      
+      return results
+    } catch (error) {
+      console.error('Raw SQL execution error:', error)
+      console.error('SQL:', sql)
+      console.error('Params:', params)
+      throw error
+    }
+  }
   // User operations
   static async createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> {
     const db = database.getDB()

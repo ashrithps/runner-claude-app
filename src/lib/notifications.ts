@@ -2,7 +2,7 @@ import { ReplitDB } from './replitdb'
 import type { Notification, Task } from './replitdb'
 import { formatCurrency, type CurrencyInfo, FALLBACK_CURRENCY } from './currency'
 
-export type NotificationType = 'task_assigned' | 'task_completed' | 'task_cancelled'
+export type NotificationType = 'task_assigned' | 'task_completed' | 'task_cancelled' | 'payment_confirmed'
 
 interface EmailData {
   to: string
@@ -418,6 +418,126 @@ export class NotificationService {
           `
         }
 
+      case 'payment_confirmed':
+        return {
+          subject: `💰 Payment Confirmed: ${task.title}`,
+          html: `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Payment Confirmed</title>
+              <!--[if mso]>
+              <noscript>
+                <xml>
+                  <o:OfficeDocumentSettings>
+                    <o:PixelsPerInch>96</o:PixelsPerInch>
+                  </o:OfficeDocumentSettings>
+                </xml>
+              </noscript>
+              <![endif]-->
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #f0fdf4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="padding: 40px 20px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                      <!-- Header -->
+                      <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px 12px 0 0;">
+                          <div style="color: #ffffff; font-size: 48px; margin-bottom: 10px;">💰</div>
+                          <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2;">Payment Confirmed!</h1>
+                          <p style="color: #fef3c7; font-size: 16px; margin: 8px 0 0; opacity: 0.9;">Your reward has been paid</p>
+                        </td>
+                      </tr>
+                      
+                      <!-- Content -->
+                      <tr>
+                        <td style="padding: 40px;">
+                          <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                            Great news! 🎉<br><br>
+                            <strong style="color: #1f2937;">${assigneeName}</strong> has confirmed payment for the task you completed:
+                          </p>
+                          
+                          <!-- Task Card -->
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f0fdf4; border-radius: 12px; border: 2px solid #bbf7d0; margin: 30px 0;">
+                            <tr>
+                              <td style="padding: 30px;">
+                                <h2 style="color: #1f2937; font-size: 22px; font-weight: 600; margin: 0 0 20px; line-height: 1.3;">${task.title}</h2>
+                                
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                  <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500; width: 100px;">📍 Address:</td>
+                                    <td style="padding: 8px 0; color: #374151; font-size: 14px; font-weight: 600;">${task.address_details || task.location || 'Location not specified'}</td>
+                                  </tr>
+                                  <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">💰 Reward Paid:</td>
+                                    <td style="padding: 8px 0;">
+                                      <span style="background-color: #059669; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 16px; font-weight: 700;">${formatCurrency(task.reward, currency)}</span>
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">✅ Status:</td>
+                                    <td style="padding: 8px 0; color: #059669; font-size: 14px; font-weight: 600;">Payment Confirmed & Archived</td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+                          
+                          <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+                            🌟 <strong>Thank you for helping your community!</strong><br>
+                            Your contribution makes a real difference. Keep up the amazing work!
+                          </p>
+                          
+                          <div style="background-color: #f0fdf4; border-radius: 12px; border: 2px solid #bbf7d0; padding: 20px; margin: 30px 0; text-align: center;">
+                            <h3 style="color: #059669; font-size: 18px; font-weight: 600; margin: 0 0 10px;">🎯 Ready for your next task?</h3>
+                            <p style="color: #16a34a; font-size: 14px; margin: 0 0 20px;">Find more opportunities to help and earn in your community</p>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                              <tr>
+                                <td style="text-align: center;">
+                                  <a href="${baseUrl}/available-tasks" 
+                                     style="background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+                                            color: #ffffff; 
+                                            text-decoration: none; 
+                                            padding: 14px 28px; 
+                                            border-radius: 8px; 
+                                            font-size: 16px; 
+                                            font-weight: 600; 
+                                            display: inline-block; 
+                                            box-shadow: 0 4px 14px 0 rgba(5, 150, 105, 0.4);">
+                                    🔍 Browse Available Tasks
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                      
+                      <!-- Footer -->
+                      <tr>
+                        <td style="padding: 30px 40px; text-align: center; background-color: #f0fdf4; border-radius: 0 0 12px 12px; border-top: 1px solid #bbf7d0;">
+                          <p style="color: #6b7280; font-size: 14px; margin: 0; line-height: 1.5;">
+                            Keep making a difference! 💪<br>
+                            <strong style="color: #374151;">Runner Community App</strong>
+                          </p>
+                          <p style="color: #9ca3af; font-size: 12px; margin: 15px 0 0;">
+                            Building stronger communities, one task at a time
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `
+        }
+
       case 'task_cancelled':
         return {
           subject: `❌ Task Cancelled: ${task.title}`,
@@ -664,6 +784,53 @@ export class NotificationService {
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
       return []
+    }
+  }
+
+  // Send notification for payment confirmation
+  static async notifyPaymentConfirmed(
+    task: Task,
+    runnerEmail: string,
+    posterName: string
+  ): Promise<void> {
+    try {
+      console.log('=== STARTING PAYMENT CONFIRMED NOTIFICATION ===')
+      console.log('Task ID:', task.id)
+      console.log('Runner Email:', runnerEmail)
+      console.log('Poster Name:', posterName)
+
+      // Create notification in database (for the runner who completed the task)
+      if (task.runner_id) {
+        const notification = await this.createNotification({
+          user_id: task.runner_id,
+          task_id: task.id,
+          type: 'payment_confirmed',
+          title: 'Payment Confirmed',
+          message: `${posterName} has confirmed payment for task: ${task.title}`
+        })
+
+        if (!notification) {
+          console.error('Failed to create payment confirmed notification')
+          return
+        }
+
+        console.log('Database notification created:', notification.id)
+      }
+
+      // Send email
+      const emailContent = this.generateEmailContent('payment_confirmed', task, posterName)
+      console.log('Generated email content for payment confirmed')
+      
+      const emailSent = await this.sendEmail({
+        to: runnerEmail,
+        ...emailContent
+      })
+
+      console.log('Email sending result:', emailSent)
+      
+      console.log('=== PAYMENT CONFIRMED NOTIFICATION COMPLETE ===')
+    } catch (error) {
+      console.error('Error in notifyPaymentConfirmed:', error)
     }
   }
 

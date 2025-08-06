@@ -26,7 +26,7 @@ CREATE TABLE tasks (
   upi_id TEXT,
   poster_id UUID REFERENCES users(id) ON DELETE CASCADE,
   runner_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  status TEXT CHECK (status IN ('available', 'in_progress', 'completed')) DEFAULT 'available',
+  status TEXT CHECK (status IN ('available', 'in_progress', 'completed', 'paid')) DEFAULT 'available',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -77,7 +77,7 @@ CREATE TABLE notifications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('task_assigned', 'task_completed', 'task_cancelled')),
+  type TEXT NOT NULL CHECK (type IN ('task_assigned', 'task_completed', 'task_cancelled', 'payment_confirmed')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   read BOOLEAN DEFAULT false,

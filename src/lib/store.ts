@@ -27,7 +27,7 @@ export interface Task {
   runner_id?: string
   runner_name?: string
   runner_mobile?: string
-  status: 'available' | 'in_progress' | 'completed'
+  status: 'available' | 'in_progress' | 'completed' | 'paid'
   created_at: string
   updated_at: string
 }
@@ -75,6 +75,7 @@ interface AppState {
   deleteTask: (taskId: string) => Promise<void>
   acceptTask: (taskId: string, runnerId: string, runnerName: string) => Promise<void>
   completeTask: (taskId: string) => Promise<void>
+  markAsPaid: (taskId: string) => Promise<void>
   updateTaskStatus: (taskId: string, status: Task['status']) => void
   loadTasks: () => Promise<void>
   loadMyTasks: () => Promise<void>
@@ -394,6 +395,47 @@ export const useAppStore = create<AppState>()(
           await get().loadMyTasks()
         } catch (err) {
           console.error('Failed to complete task:', err)
+        }
+      },
+
+      markAsPaid: async (taskId) => {
+        try {
+          console.log('Marking task as paid via API...')
+
+          const response = await fetch('/api/tasks/mark-paid', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ taskId }),
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('Failed to mark task as paid:', error)
+            throw new Error(error.error || 'Failed to mark task as paid')
+          }
+
+          const { task: updatedTask } = await response.json()
+
+          set((state) => ({
+            myAcceptedTasks: state.myAcceptedTasks.map(task =>
+              task.id === taskId
+                ? { ...updatedTask, status: 'paid' as const }
+                : task
+            ),
+            myPostedTasks: state.myPostedTasks.map(task =>
+              task.id === taskId
+                ? { ...updatedTask, status: 'paid' as const }
+                : task
+            )
+          }))
+
+          // Refresh my tasks to get updated status
+          await get().loadMyTasks()
+        } catch (err) {
+          console.error('Failed to mark task as paid:', err)
+          throw err
         }
       },
 
