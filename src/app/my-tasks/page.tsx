@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, Clock, DollarSign, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
+import { MapPin, Clock, Coins, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
 import { useAppStore, Task } from '@/lib/store'
 import { formatCurrency } from '@/lib/currency'
 import { WhatsAppService } from '@/lib/whatsapp'
@@ -130,7 +130,7 @@ export default function MyTasksPage() {
                       <div className="flex items-center gap-2 mt-2">
                         {getStatusBadge(task.status)}
                         <div className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
-                          <DollarSign className="h-3 w-3 mr-1" />
+                          <Coins className="h-3 w-3 mr-1" />
                           {formatCurrency(task.reward, currency)}
                         </div>
                       </div>
@@ -249,7 +249,7 @@ export default function MyTasksPage() {
                       <div className="flex items-center gap-2 mt-2">
                         {getStatusBadge(task.status)}
                         <div className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-                          <DollarSign className="h-3 w-3 mr-1" />
+                          <Coins className="h-3 w-3 mr-1" />
                           {formatCurrency(task.reward, currency)}
                         </div>
                       </div>
@@ -325,7 +325,7 @@ export default function MyTasksPage() {
                             </button>
                           </div>
                           <div className="flex items-center text-green-800">
-                            <DollarSign className="h-4 w-4 mr-2" />
+                            <Coins className="h-4 w-4 mr-2" />
                             <span>Pay {formatCurrency(task.reward, currency)} via mobile payment apps</span>
                           </div>
                         </div>

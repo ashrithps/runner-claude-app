@@ -21,12 +21,32 @@ export function LocationGuard({ children, onLocationGranted }: LocationGuardProp
 
   const checkInitialPermission = async () => {
     try {
+      // Check if we've previously granted permission in this session/device
+      const previouslyGranted = localStorage.getItem('location-permission-granted')
+      const lastCoords = localStorage.getItem('user-coordinates')
+      
+      if (previouslyGranted === 'true' && lastCoords) {
+        try {
+          const coords = JSON.parse(lastCoords)
+          setLocationStatus('granted')
+          onLocationGranted(coords.latitude, coords.longitude)
+          return
+        } catch {
+          // If coordinates are corrupted, continue with permission check
+          localStorage.removeItem('location-permission-granted')
+          localStorage.removeItem('user-coordinates')
+        }
+      }
+
       const hasPermission = await checkLocationPermission()
       
       if (hasPermission) {
         // Try to get current position
         const coords = await getCurrentPosition()
         setLocationStatus('granted')
+        // Store permission and coordinates for future loads
+        localStorage.setItem('location-permission-granted', 'true')
+        localStorage.setItem('user-coordinates', JSON.stringify(coords))
         onLocationGranted(coords.latitude, coords.longitude)
       } else {
         setLocationStatus('denied')
@@ -48,6 +68,9 @@ export function LocationGuard({ children, onLocationGranted }: LocationGuardProp
       if (granted) {
         const coords = await getCurrentPosition()
         setLocationStatus('granted')
+        // Store permission and coordinates for future loads
+        localStorage.setItem('location-permission-granted', 'true')
+        localStorage.setItem('user-coordinates', JSON.stringify(coords))
         onLocationGranted(coords.latitude, coords.longitude)
       } else {
         setLocationStatus('denied')

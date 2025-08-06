@@ -8,7 +8,7 @@ import { AnimatedCard, AnimatedCardContent, AnimatedCardHeader } from '@/compone
 import { TaskCardSkeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import { PullToRefresh } from '@/components/ui/pull-to-refresh'
-import { MapPin, Clock, DollarSign, User, Loader2, RotateCcw, CheckCircle2, Navigation, Sparkles } from 'lucide-react'
+import { MapPin, Clock, Coins, User, Loader2, RotateCcw, CheckCircle2, Navigation, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/currency'
 import { UserRatingDisplay } from '@/components/user-rating-display'
@@ -225,7 +225,7 @@ export default function AvailableTasksPage() {
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <DollarSign className="h-3 w-3 mr-1" />
+                  <Coins className="h-3 w-3 mr-1" />
                   {formatCurrency(task.reward, currency)}
                 </motion.div>
               </div>
