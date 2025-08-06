@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   output: 'standalone',
-  serverExternalPackages: ['@supabase/supabase-js', 'better-sqlite3'],
+  serverExternalPackages: ['better-sqlite3'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Exclude server-only packages from client bundle
