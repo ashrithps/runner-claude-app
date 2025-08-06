@@ -33,6 +33,7 @@ export default function PostTaskPage() {
   const [locationError, setLocationError] = useState('')
   const [showSafariHelp, setShowSafariHelp] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   // Auto-populate location from user's current location on page load
   useEffect(() => {
@@ -71,6 +72,12 @@ export default function PostTaskPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevent double submission
+    if (isSubmitting || submitSuccess) {
+      return
+    }
+    
     setIsSubmitting(true)
     
     if (!user) {
@@ -109,10 +116,11 @@ export default function PostTaskPage() {
 
       await addTask(taskData)
       
-      // Show success message
+      // Mark success and show feedback
+      setSubmitSuccess(true)
       showToast('🎉 Task posted successfully! Your community will see it now.', 'success')
       
-      // Reset form
+      // Reset form completely
       setFormData({
         title: '',
         description: '',
@@ -126,15 +134,18 @@ export default function PostTaskPage() {
       // Redirect to available tasks after a brief delay
       setTimeout(() => {
         router.push('/available-tasks')
-      }, 1500)
+      }, 2000)
     } catch (error) {
       showToast('Failed to post task. Please try again.', 'error')
-    } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleInputChange = (field: string, value: string) => {
+    // Reset success state when user starts typing again
+    if (submitSuccess) {
+      setSubmitSuccess(false)
+    }
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -340,10 +351,19 @@ export default function PostTaskPage() {
             <div className="pt-4">
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
+                disabled={isSubmitting || submitSuccess}
+                className={`w-full font-semibold py-3 transition-colors ${
+                  submitSuccess 
+                    ? 'bg-green-600 hover:bg-green-600 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
-                {isSubmitting ? (
+                {submitSuccess ? (
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    Task Posted Successfully!
+                  </div>
+                ) : isSubmitting ? (
                   <div className="flex items-center">
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     Posting Task...

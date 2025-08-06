@@ -90,15 +90,38 @@ async function getCountryFromIP(): Promise<string | null> {
 
 export function formatCurrency(amount: number, currencyInfo: CurrencyInfo): string {
   try {
-    return new Intl.NumberFormat('en-US', {
+    // Use a locale that matches the currency region for better formatting
+    const locale = getLocaleForCurrency(currencyInfo.code);
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currencyInfo.code,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   } catch (error) {
+    console.log('Currency formatting failed, using fallback:', error);
+    // Simple fallback without double symbols
     return `${currencyInfo.symbol}${amount}`;
   }
+}
+
+function getLocaleForCurrency(currencyCode: string): string {
+  const currencyToLocale: Record<string, string> = {
+    USD: 'en-US',
+    EUR: 'de-DE',
+    GBP: 'en-GB',
+    INR: 'en-IN',
+    JPY: 'ja-JP',
+    CNY: 'zh-CN',
+    AUD: 'en-AU',
+    CAD: 'en-CA',
+    CHF: 'de-CH',
+    SGD: 'en-SG',
+    HKD: 'zh-HK',
+    // Add more mappings as needed
+  };
+  
+  return currencyToLocale[currencyCode] || 'en-US';
 }
 
 export function getCurrencySymbol(currencyInfo: CurrencyInfo): string {
