@@ -54,9 +54,21 @@ README.md
 *.md
 
 # Docker
-Dockerfile
 docker-compose.yml
-.dockerignore
 
-# Coolify
-coolify.yaml 
+# Deployment configs
+coolify.yaml
+dokploy.json
+
+# SQLite databases (will be created in volume)
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+# Backup files
+*.backup
+*.backup2
+
+# GitHub Actions (keep in image for reference)
+# .github/ 

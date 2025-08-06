@@ -1,0 +1,54 @@
+{
+  "name": "runner-claude-app",
+  "appName": "runner-claude-app",
+  "description": "Community task sharing application with SQLite database",
+  "sourceType": "docker",
+  "dockerImage": "ashrithps/runner-claude-app:latest",
+  "ports": [
+    {
+      "publishedPort": 3000,
+      "targetPort": 3000,
+      "protocol": "tcp"
+    }
+  ],
+  "volumes": [
+    {
+      "mountPath": "/app/data",
+      "volumeName": "runner-sqlite-data",
+      "type": "volume"
+    }
+  ],
+  "env": [
+    {
+      "name": "NODE_ENV",
+      "value": "production"
+    },
+    {
+      "name": "DATABASE_PATH",
+      "value": "/app/data/database.sqlite"
+    },
+    {
+      "name": "RESEND_API_KEY",
+      "value": "${RESEND_API_KEY}"
+    },
+    {
+      "name": "FROM_EMAIL", 
+      "value": "${FROM_EMAIL}"
+    }
+  ],
+  "healthCheck": {
+    "enabled": true,
+    "path": "/api/debug/test-connection",
+    "port": 3000,
+    "initialDelaySeconds": 30,
+    "intervalSeconds": 30,
+    "timeoutSeconds": 10,
+    "retries": 3
+  },
+  "resources": {
+    "memoryLimit": "512Mi",
+    "memoryReservation": "256Mi",
+    "cpuLimit": "0.5",
+    "cpuReservation": "0.25"
+  }
+}
