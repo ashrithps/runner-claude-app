@@ -20,7 +20,8 @@
       "Bash(NEXT_DEBUG=1 npm run dev)",
       "Bash(mkdir:*)",
       "Bash(node:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(APP_URL=https://runner.iloop.me node scripts/migrate.js run)"
     ],
     "deny": []
   }

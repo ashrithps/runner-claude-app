@@ -132,7 +132,11 @@ export default function MyTasksPage() {
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, isPaid?: boolean) => {
+    if (isPaid) {
+      return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">Paid & Archived</span>
+    }
+    
     switch (status) {
       case 'available':
         return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">Available</span>
@@ -140,8 +144,6 @@ export default function MyTasksPage() {
         return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">In Progress</span>
       case 'completed':
         return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Completed</span>
-      case 'paid':
-        return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">Paid & Archived</span>
       default:
         return null
     }
@@ -162,7 +164,7 @@ export default function MyTasksPage() {
         </TabsList>
 
         <TabsContent value="accepted" className="space-y-4 mt-6">
-          {myAcceptedTasks.filter(task => task.status !== 'paid').length === 0 ? (
+          {myAcceptedTasks.filter(task => !task.is_paid).length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <PlayCircle className="h-16 w-16 mx-auto mb-4 text-gray-400" />
@@ -171,14 +173,14 @@ export default function MyTasksPage() {
               </CardContent>
             </Card>
           ) : (
-            myAcceptedTasks.filter(task => task.status !== 'paid').map((task) => (
+            myAcceptedTasks.filter(task => !task.is_paid).map((task) => (
               <Card key={task.id} className="border-l-4 border-l-green-500">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 text-lg">{task.title}</h3>
                       <div className="flex items-center gap-2 mt-2">
-                        {getStatusBadge(task.status)}
+                        {getStatusBadge(task.status, task.is_paid)}
                         <div className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
                           <Coins className="h-3 w-3 mr-1" />
                           {formatCurrency(task.reward, currency)}
@@ -281,7 +283,7 @@ export default function MyTasksPage() {
         </TabsContent>
 
         <TabsContent value="posted" className="space-y-4 mt-6">
-          {myPostedTasks.filter(task => task.status !== 'paid').length === 0 ? (
+          {myPostedTasks.filter(task => !task.is_paid).length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <User className="h-16 w-16 mx-auto mb-4 text-gray-400" />
@@ -290,14 +292,14 @@ export default function MyTasksPage() {
               </CardContent>
             </Card>
           ) : (
-            myPostedTasks.filter(task => task.status !== 'paid').map((task) => (
+            myPostedTasks.filter(task => !task.is_paid).map((task) => (
               <Card key={task.id} className="border-l-4 border-l-blue-500">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 text-lg">{task.title}</h3>
                       <div className="flex items-center gap-2 mt-2">
-                        {getStatusBadge(task.status)}
+                        {getStatusBadge(task.status, task.is_paid)}
                         <div className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
                           <Coins className="h-3 w-3 mr-1" />
                           {formatCurrency(task.reward, currency)}
@@ -433,7 +435,7 @@ export default function MyTasksPage() {
         </TabsContent>
 
         <TabsContent value="archived" className="space-y-4 mt-6">
-          {[...myPostedTasks, ...myAcceptedTasks].filter(task => task.status === 'paid').length === 0 ? (
+          {[...myPostedTasks, ...myAcceptedTasks].filter(task => task.is_paid).length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <Archive className="h-16 w-16 mx-auto mb-4 text-gray-400" />
@@ -443,7 +445,7 @@ export default function MyTasksPage() {
             </Card>
           ) : (
             [...myPostedTasks, ...myAcceptedTasks]
-              .filter(task => task.status === 'paid')
+              .filter(task => task.is_paid)
               .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
               .map((task) => (
               <Card key={task.id} className="border-l-4 border-l-purple-500">
@@ -452,7 +454,7 @@ export default function MyTasksPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 text-lg">{task.title}</h3>
                       <div className="flex items-center gap-2 mt-2">
-                        {getStatusBadge(task.status)}
+                        {getStatusBadge(task.status, task.is_paid)}
                         <div className="flex items-center bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm font-medium">
                           <Coins className="h-3 w-3 mr-1" />
                           {formatCurrency(task.reward, currency)}

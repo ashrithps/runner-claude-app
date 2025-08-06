@@ -27,7 +27,8 @@ export interface Task {
   runner_id?: string
   runner_name?: string
   runner_mobile?: string
-  status: 'available' | 'in_progress' | 'completed' | 'paid'
+  status: 'available' | 'in_progress' | 'completed'
+  is_paid?: boolean
   created_at: string
   updated_at: string
 }
@@ -421,12 +422,12 @@ export const useAppStore = create<AppState>()(
           set((state) => ({
             myAcceptedTasks: state.myAcceptedTasks.map(task =>
               task.id === taskId
-                ? { ...updatedTask, status: 'paid' as const }
+                ? { ...updatedTask, is_paid: true }
                 : task
             ),
             myPostedTasks: state.myPostedTasks.map(task =>
               task.id === taskId
-                ? { ...updatedTask, status: 'paid' as const }
+                ? { ...updatedTask, is_paid: true }
                 : task
             )
           }))

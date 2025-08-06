@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update task status to paid
-    const updatedTask = await DatabaseOperations.updateTask(taskId, { status: 'paid' })
+    // Update task is_paid flag to true
+    const updatedTask = await DatabaseOperations.updateTask(taskId, { is_paid: true })
 
     if (!updatedTask) {
       return NextResponse.json(

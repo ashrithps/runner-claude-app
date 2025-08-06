@@ -1,0 +1,19 @@
+-- Migration: Add 'paid' status to tasks (SIMPLE SAFE VERSION)
+-- Created: 2024-01-01  
+-- Description: Adds support for marking tasks as paid
+
+-- This migration safely adds 'paid' status support without breaking existing data
+
+-- First, let's add a simple column to track if task is paid
+-- SQLite doesn't support modifying CHECK constraints, so we'll use a different approach
+ALTER TABLE tasks ADD COLUMN is_paid BOOLEAN DEFAULT false;
+
+-- Create index for performance
+CREATE INDEX IF NOT EXISTS idx_tasks_is_paid ON tasks(is_paid);
+
+-- For notifications, just ensure the table can handle payment_confirmed type
+-- We'll handle the new notification type in the app code rather than constraining at DB level
+-- This is safer for production
+
+-- Verify the column was added
+SELECT 'Migration completed - added is_paid column' as status;

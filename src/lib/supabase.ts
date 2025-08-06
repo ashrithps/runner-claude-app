@@ -13,6 +13,7 @@ export type Task = {
   poster_id: string
   runner_id?: string
   status: 'available' | 'in_progress' | 'completed'
+  is_paid?: boolean
   created_at: string
   updated_at: string
 }
