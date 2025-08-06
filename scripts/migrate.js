@@ -24,7 +24,7 @@ async function runMigrations() {
     // For TypeScript projects, we need to use the Next.js API instead
     console.log('🔄 Using API-based migration for TypeScript project')
     
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'
     
     const command = process.argv[2] || 'status'
     
