@@ -153,6 +153,13 @@ export class DatabaseOperations {
     return stmt.all(runnerId) as Task[]
   }
 
+  static deleteTask(id: string): boolean {
+    const db = database.getDB()
+    const stmt = db.prepare('DELETE FROM tasks WHERE id = ?')
+    const result = stmt.run(id)
+    return result.changes > 0
+  }
+
   // OTP session operations
   static async createOTPSession(email: string, otp: string, expiresInMinutes: number = 10): Promise<OTPSession> {
     const db = database.getDB()

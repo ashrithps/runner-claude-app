@@ -71,6 +71,7 @@ interface AppState {
   setCurrency: (currency: CurrencyInfo) => void
   ensureUserInDatabase: (user: User) => Promise<boolean>
   addTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
+  deleteTask: (taskId: string) => Promise<void>
   acceptTask: (taskId: string, runnerId: string, runnerName: string) => Promise<void>
   completeTask: (taskId: string) => Promise<void>
   updateTaskStatus: (taskId: string, status: Task['status']) => void
@@ -245,6 +246,35 @@ export const useAppStore = create<AppState>()(
           }))
         } catch (err) {
           console.error('Failed to create task:', err)
+        }
+      },
+
+      deleteTask: async (taskId) => {
+        try {
+          console.log('Deleting task via API...')
+
+          const response = await fetch('/api/tasks/delete', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ taskId }),
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('Failed to delete task:', error)
+            return
+          }
+
+          // Remove task from all relevant arrays
+          set((state) => ({
+            tasks: state.tasks.filter(t => t.id !== taskId),
+            myPostedTasks: state.myPostedTasks.filter(t => t.id !== taskId),
+            myAcceptedTasks: state.myAcceptedTasks.filter(t => t.id !== taskId)
+          }))
+        } catch (err) {
+          console.error('Failed to delete task:', err)
         }
       },
 

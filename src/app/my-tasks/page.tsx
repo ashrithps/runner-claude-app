@@ -1,10 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, Clock, Coins, User, CheckCircle, PlayCircle, MessageCircle, Phone } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { MapPin, Clock, Coins, User, CheckCircle, PlayCircle, MessageCircle, Phone, Trash2 } from 'lucide-react'
 import { useAppStore, Task } from '@/lib/store'
 import { formatCurrency } from '@/lib/currency'
 import { WhatsAppService } from '@/lib/whatsapp'
@@ -12,7 +20,9 @@ import { TaskRating } from '@/components/rating-system'
 import { UserRatingDisplay } from '@/components/user-rating-display'
 
 export default function MyTasksPage() {
-  const { myPostedTasks, myAcceptedTasks, completeTask, user, loadMyTasks, currency } = useAppStore()
+  const { myPostedTasks, myAcceptedTasks, completeTask, deleteTask, user, loadMyTasks, currency } = useAppStore()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null)
 
   useEffect(() => {
     loadMyTasks()
@@ -35,6 +45,24 @@ export default function MyTasksPage() {
   const handleNotifyCompletion = (task: Task) => {
     if (!task.poster_mobile) return
     WhatsAppService.notifyTaskCompletion(task, task.poster_mobile, currency)
+  }
+
+  const openDeleteDialog = (task: Task) => {
+    setTaskToDelete(task)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!taskToDelete) return
+    
+    await deleteTask(taskToDelete.id)
+    setDeleteDialogOpen(false)
+    setTaskToDelete(null)
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false)
+    setTaskToDelete(null)
   }
 
   const formatTimeAgo = (createdAt: string) => {
@@ -333,10 +361,21 @@ export default function MyTasksPage() {
                     )}
 
                     {task.status === 'available' && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-                        <p className="text-sm text-blue-800">
-                          ⏳ Waiting for someone to accept this task
-                        </p>
+                      <div className="space-y-3 mt-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-800">
+                            ⏳ Waiting for someone to accept this task
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => openDeleteDialog(task)}
+                          variant="outline"
+                          className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Task
+                        </Button>
                       </div>
                     )}
 
@@ -361,6 +400,33 @@ export default function MyTasksPage() {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{taskToDelete?.title}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleDeleteCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
