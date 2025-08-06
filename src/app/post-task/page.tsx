@@ -15,11 +15,13 @@ import { getCurrencySymbol } from '@/lib/currency'
 import { createDefaultUser } from '@/lib/utils'
 import { getCurrentPosition, shouldShowSafariHelp, getSafariLocationInstructions } from '@/lib/geolocation'
 import { useToast } from '@/components/ui/toast'
+import { useDynamicPlaceholder } from '@/hooks/useDynamicPlaceholder'
 
 export default function PostTaskPage() {
   const router = useRouter()
   const { addTask, user, setUser, currency, currencyLoading } = useAppStore()
   const { showToast } = useToast()
+  const { placeholder: dynamicPlaceholder, isVisible } = useDynamicPlaceholder(3000)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -192,14 +194,19 @@ export default function PostTaskPage() {
               <Label htmlFor="title" className="text-gray-700 font-medium">
                 Task Title *
               </Label>
-              <Input
-                id="title"
-                placeholder="e.g., Help carry groceries from supermarket"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                required
-                className="focus:border-blue-500"
-              />
+              <div className="relative">
+                <Input
+                  id="title"
+                  placeholder={dynamicPlaceholder}
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  required
+                  className="focus:border-blue-500 transition-all duration-200"
+                  style={{ 
+                    opacity: isVisible ? 1 : 0.7,
+                  }}
+                />
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Be specific! Good titles get faster responses
               </p>

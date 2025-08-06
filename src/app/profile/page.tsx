@@ -11,12 +11,15 @@ import { useAppStore } from '@/lib/store'
 import { createDefaultUser } from '@/lib/utils'
 import { UserRatingDisplay } from '@/components/user-rating-display'
 import { getCurrentPosition } from '@/lib/geolocation'
+import { useToast } from '@/components/ui/toast'
 
 const DEFAULT_PROFILE = createDefaultUser()
 
 export default function ProfilePage() {
-  const { user, setUser, myPostedTasks, myAcceptedTasks, signOut } = useAppStore()
+  const { user, setUser, updateUser, myPostedTasks, myAcceptedTasks, signOut } = useAppStore()
+  const { showToast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [locationError, setLocationError] = useState('')
   
@@ -31,12 +34,38 @@ export default function ProfilePage() {
     }
   }, [user, setUser])
 
-  const handleSave = () => {
-    if (user) {
-      const updatedUser = { ...user, ...editedProfile }
-      setUser(updatedUser)
+  const handleSave = async () => {
+    if (!user) return
+
+    setIsSaving(true)
+    try {
+      // Calculate what changed to send only the updates
+      const updates: Partial<typeof user> = {}
+      
+      if (editedProfile.name !== user.name) updates.name = editedProfile.name
+      if (editedProfile.address_details !== user.address_details) updates.address_details = editedProfile.address_details
+      if (editedProfile.mobile !== user.mobile) updates.mobile = editedProfile.mobile
+      if (editedProfile.latitude !== user.latitude) updates.latitude = editedProfile.latitude
+      if (editedProfile.longitude !== user.longitude) updates.longitude = editedProfile.longitude
+      if (editedProfile.available_for_tasks !== user.available_for_tasks) updates.available_for_tasks = editedProfile.available_for_tasks
+      if (editedProfile.email_notifications !== user.email_notifications) updates.email_notifications = editedProfile.email_notifications
+
+      if (Object.keys(updates).length === 0) {
+        // No changes made
+        setIsEditing(false)
+        setIsSaving(false)
+        return
+      }
+
+      await updateUser(updates)
+      showToast('Profile updated successfully!', 'success')
+      setIsEditing(false)
+    } catch (error) {
+      showToast('Failed to update profile. Please try again.', 'error')
+      console.error('Profile update error:', error)
+    } finally {
+      setIsSaving(false)
     }
-    setIsEditing(false)
   }
 
   const handleCancel = () => {
@@ -59,6 +88,16 @@ export default function ProfilePage() {
         latitude: coords.latitude,
         longitude: coords.longitude
       }))
+      
+      // Auto-save location updates immediately if not in editing mode
+      if (!isEditing && user) {
+        await updateUser({
+          latitude: coords.latitude,
+          longitude: coords.longitude
+        })
+        showToast('Location updated successfully!', 'success')
+      }
+      
       setLocationStatus('success')
     } catch (err) {
       setLocationStatus('error')
@@ -109,10 +148,15 @@ export default function ProfilePage() {
                 <Button
                   size="sm"
                   onClick={handleSave}
+                  disabled={isSaving}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {isSaving ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             )}
@@ -247,11 +291,18 @@ export default function ProfilePage() {
             </div>
             <Switch
               checked={isEditing ? editedProfile.available_for_tasks : (user?.available_for_tasks ?? DEFAULT_PROFILE.available_for_tasks)}
-              onCheckedChange={(checked) => 
-                isEditing 
-                  ? handleInputChange('available_for_tasks', checked)
-                  : user && setUser({ ...user, available_for_tasks: checked })
-              }
+              onCheckedChange={async (checked) => {
+                if (isEditing) {
+                  handleInputChange('available_for_tasks', checked)
+                } else if (user) {
+                  try {
+                    await updateUser({ available_for_tasks: checked })
+                    showToast(`Availability ${checked ? 'enabled' : 'disabled'}`, 'success')
+                  } catch (error) {
+                    showToast('Failed to update availability', 'error')
+                  }
+                }
+              }}
             />
           </div>
           
@@ -264,11 +315,18 @@ export default function ProfilePage() {
             </div>
             <Switch
               checked={isEditing ? editedProfile.email_notifications : (user?.email_notifications ?? DEFAULT_PROFILE.email_notifications)}
-              onCheckedChange={(checked) => 
-                isEditing 
-                  ? handleInputChange('email_notifications', checked)
-                  : user && setUser({ ...user, email_notifications: checked })
-              }
+              onCheckedChange={async (checked) => {
+                if (isEditing) {
+                  handleInputChange('email_notifications', checked)
+                } else if (user) {
+                  try {
+                    await updateUser({ email_notifications: checked })
+                    showToast(`Email notifications ${checked ? 'enabled' : 'disabled'}`, 'success')
+                  } catch (error) {
+                    showToast('Failed to update email preferences', 'error')
+                  }
+                }
+              }}
             />
           </div>
         </CardContent>

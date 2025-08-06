@@ -66,6 +66,7 @@ interface AppState {
   
   // Actions
   setUser: (user: User) => void
+  updateUser: (updates: Partial<User>) => Promise<void>
   clearUser: () => void
   initializeCurrency: () => Promise<void>
   setCurrency: (currency: CurrencyInfo) => void
@@ -152,6 +153,35 @@ export const useAppStore = create<AppState>()(
         set({ user })
         // Initialize currency when user is set
         get().initializeCurrency()
+      },
+
+      updateUser: async (updates) => {
+        try {
+          const response = await fetch('/api/users/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updates),
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            console.error('Failed to update user:', error)
+            throw new Error(error.error || 'Failed to update user')
+          }
+
+          const { user: updatedUser } = await response.json()
+          set({ user: updatedUser })
+          
+          // Update currency if location changed
+          if (updates.latitude !== undefined || updates.longitude !== undefined) {
+            await get().initializeCurrency()
+          }
+        } catch (err) {
+          console.error('Failed to update user:', err)
+          throw err
+        }
       },
 
       clearUser: () => set({ user: null, myPostedTasks: [], myAcceptedTasks: [] }),
