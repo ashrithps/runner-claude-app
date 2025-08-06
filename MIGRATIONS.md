@@ -28,6 +28,10 @@ curl -X POST http://localhost:3000/api/migrate \
 
 #### **Option 3: Via CLI Script**
 ```bash
+# IMPORTANT: Start your dev server first in another terminal
+npm run dev
+
+# Then in another terminal:
 # Check status
 node scripts/migrate.js status
 
@@ -158,7 +162,13 @@ Run pending migrations or get status.
 
 ## CLI Commands
 
+**⚠️ Important: CLI commands require your dev server to be running!**
+
 ```bash
+# Start dev server (in one terminal)
+npm run dev
+
+# Run CLI commands (in another terminal)
 # Check migration status
 node scripts/migrate.js status
 
