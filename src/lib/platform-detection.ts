@@ -169,7 +169,7 @@ class PlatformDetectionService {
     }
 
     // Determine priority order based on platform
-    let priority: ('haptic' | 'audio' | 'visual')[] = []
+    const priority: ('haptic' | 'audio' | 'visual')[] = []
     
     if (capabilities.haptic) {
       priority.push('haptic')

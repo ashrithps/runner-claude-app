@@ -158,7 +158,7 @@ export const useGamificationStore = create<GamificationState>()(
         
         // Base XP for completion
         let totalXp = XP_VALUES.COMPLETE_TASK
-        let reasons = ['Task Completion']
+        const reasons = ['Task Completion']
         
         // Bonus for 5-star rating
         if (rating === 5) {

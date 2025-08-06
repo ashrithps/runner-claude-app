@@ -191,8 +191,8 @@ export function FeedbackTest() {
       <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
         <h3 className="font-semibold text-amber-800 mb-2">iPhone Safari Users</h3>
         <p className="text-sm text-amber-700">
-          If you're on iPhone Safari, you should hear audio feedback and see enhanced visual effects 
-          instead of haptic vibration. Make sure your device isn't on silent mode!
+          If you&apos;re on iPhone Safari, you should hear audio feedback and see enhanced visual effects 
+          instead of haptic vibration. Make sure your device isn&apos;t on silent mode!
         </p>
       </div>
     </div>
