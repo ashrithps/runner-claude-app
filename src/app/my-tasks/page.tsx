@@ -55,9 +55,17 @@ export default function MyTasksPage() {
   const handleDeleteConfirm = async () => {
     if (!taskToDelete) return
     
-    await deleteTask(taskToDelete.id)
-    setDeleteDialogOpen(false)
-    setTaskToDelete(null)
+    console.log('Attempting to delete task:', taskToDelete.id)
+    try {
+      await deleteTask(taskToDelete.id)
+      console.log('Task deleted successfully')
+      setDeleteDialogOpen(false)
+      setTaskToDelete(null)
+      // Refresh the tasks to see the updated list
+      await loadMyTasks()
+    } catch (error) {
+      console.error('Failed to delete task:', error)
+    }
   }
 
   const handleDeleteCancel = () => {

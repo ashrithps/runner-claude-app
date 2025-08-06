@@ -251,7 +251,7 @@ export const useAppStore = create<AppState>()(
 
       deleteTask: async (taskId) => {
         try {
-          console.log('Deleting task via API...')
+          console.log('Deleting task via API...', taskId)
 
           const response = await fetch('/api/tasks/delete', {
             method: 'DELETE',
@@ -261,20 +261,29 @@ export const useAppStore = create<AppState>()(
             body: JSON.stringify({ taskId }),
           })
 
+          console.log('Delete response status:', response.status)
+          
           if (!response.ok) {
             const error = await response.json()
             console.error('Failed to delete task:', error)
-            return
+            throw new Error(error.error || 'Failed to delete task')
           }
 
+          const result = await response.json()
+          console.log('Delete response:', result)
+
           // Remove task from all relevant arrays
-          set((state) => ({
-            tasks: state.tasks.filter(t => t.id !== taskId),
-            myPostedTasks: state.myPostedTasks.filter(t => t.id !== taskId),
-            myAcceptedTasks: state.myAcceptedTasks.filter(t => t.id !== taskId)
-          }))
+          set((state) => {
+            console.log('Removing task from state arrays')
+            return {
+              tasks: state.tasks.filter(t => t.id !== taskId),
+              myPostedTasks: state.myPostedTasks.filter(t => t.id !== taskId),
+              myAcceptedTasks: state.myAcceptedTasks.filter(t => t.id !== taskId)
+            }
+          })
         } catch (err) {
           console.error('Failed to delete task:', err)
+          throw err
         }
       },
 
