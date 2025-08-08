@@ -36,6 +36,7 @@ export default function PostTaskPage() {
   const [showSafariHelp, setShowSafariHelp] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   // Auto-populate location from user's current location on page load
   useEffect(() => {
@@ -72,15 +73,31 @@ export default function PostTaskPage() {
     }
   }
 
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {}
+    if (!formData.title.trim()) newErrors.title = 'Task title is required'
+    if (!formData.address_details.trim()) newErrors.address_details = 'Address details are required'
+    if (!formData.reward.trim()) newErrors.reward = 'Reward amount is required'
+    else if (!/^\d+$/.test(formData.reward.trim())) newErrors.reward = 'Reward must be a valid number'
+    return newErrors
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Prevent double submission
     if (isSubmitting || submitSuccess) {
       return
     }
-    
+
     setIsSubmitting(true)
+
+    const validationErrors = validateForm()
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      setIsSubmitting(false)
+      return
+    }
     
     if (!user) {
       // Create a default user if none exists
@@ -132,6 +149,7 @@ export default function PostTaskPage() {
         reward: ''
       })
       setSelectedDateTime(undefined)
+      setErrors({})
 
       // Redirect to available tasks after a brief delay
       setTimeout(() => {
@@ -148,7 +166,14 @@ export default function PostTaskPage() {
     if (submitSuccess) {
       setSubmitSuccess(false)
     }
-    setFormData(prev => ({ ...prev, [field]: value }))
+    if (field === 'reward') {
+      if (value === '' || /^\d+$/.test(value)) {
+        setFormData(prev => ({ ...prev, reward: value }))
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }))
+    }
+    setErrors(prev => ({ ...prev, [field]: '' }))
   }
 
   // Floating animation for header icons
@@ -210,6 +235,9 @@ export default function PostTaskPage() {
               <p className="text-xs text-gray-500 mt-1">
                 Be specific! Good titles get faster responses
               </p>
+              {errors.title && (
+                <p className="text-xs text-red-500 mt-1">{errors.title}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -315,6 +343,9 @@ export default function PostTaskPage() {
               <p className="text-xs text-gray-500 mt-1">
                 Detailed address helps runners find you quickly!
               </p>
+              {errors.address_details && (
+                <p className="text-xs text-red-500 mt-1">{errors.address_details}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -349,10 +380,15 @@ export default function PostTaskPage() {
                   onChange={(e) => handleInputChange('reward', e.target.value)}
                   required
                   min="1"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="focus:border-blue-500 pl-8"
                 />
                 <div className="absolute left-3 top-3 text-gray-500">{getCurrencySymbol(currency)}</div>
               </div>
+              {errors.reward && (
+                <p className="text-xs text-red-500 mt-1">{errors.reward}</p>
+              )}
             </div>
 
             <div className="pt-4">
