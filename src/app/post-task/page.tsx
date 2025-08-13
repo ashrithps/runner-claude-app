@@ -36,6 +36,7 @@ export default function PostTaskPage() {
   const [showSafariHelp, setShowSafariHelp] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Auto-populate location from user's current location on page load
   useEffect(() => {
@@ -72,11 +73,66 @@ export default function PostTaskPage() {
     }
   }
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+    
+    // Title validation
+    if (!formData.title.trim()) {
+      newErrors.title = 'Task title is required'
+    } else if (formData.title.trim().length < 3) {
+      newErrors.title = 'Task title must be at least 3 characters'
+    } else if (formData.title.trim().length > 100) {
+      newErrors.title = 'Task title must be less than 100 characters'
+    }
+    
+    // Address details validation
+    if (!formData.address_details.trim()) {
+      newErrors.address_details = 'Address details are required'
+    } else if (formData.address_details.trim().length < 5) {
+      newErrors.address_details = 'Please provide detailed address information'
+    } else if (formData.address_details.trim().length > 200) {
+      newErrors.address_details = 'Address details must be less than 200 characters'
+    }
+    
+    // Reward validation
+    const reward = parseInt(formData.reward)
+    if (!formData.reward) {
+      newErrors.reward = 'Reward amount is required'
+    } else if (isNaN(reward) || reward <= 0) {
+      newErrors.reward = 'Reward must be a positive number'
+    } else if (reward > 10000) {
+      newErrors.reward = 'Reward amount seems too high (max 10,000)'
+    }
+    
+    // Date/time validation
+    if (!selectedDateTime) {
+      newErrors.datetime = 'Please select when you need this task completed'
+    } else if (selectedDateTime < new Date()) {
+      newErrors.datetime = 'Please select a future date and time'
+    } else if (selectedDateTime > new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
+      newErrors.datetime = 'Please select a date within the next 30 days'
+    }
+    
+    // Location validation
+    if (locationStatus !== 'success') {
+      newErrors.location = 'Please set a valid location for the task'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Prevent double submission
     if (isSubmitting || submitSuccess) {
+      return
+    }
+    
+    // Validate form
+    if (!validateForm()) {
+      showToast('Please fix the errors in the form', 'warning')
       return
     }
     
@@ -89,27 +145,15 @@ export default function PostTaskPage() {
     }
 
     const currentUser = user || createDefaultUser()
-
-    if (!selectedDateTime) {
-      showToast('Please select date and time for the task', 'warning')
-      setIsSubmitting(false)
-      return
-    }
-
-    if (locationStatus !== 'success') {
-      showToast('Please set a valid location for the task', 'warning')
-      setIsSubmitting(false)
-      return
-    }
     
     try {
       const taskData = {
-        title: formData.title,
-        description: formData.description || undefined,
+        title: formData.title.trim(),
+        description: formData.description.trim() || undefined,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        address_details: formData.address_details,
-        time: selectedDateTime.toISOString(),
+        address_details: formData.address_details.trim(),
+        time: selectedDateTime!.toISOString(),
         reward: parseInt(formData.reward),
         poster_id: currentUser.id,
         poster_name: currentUser.name,
@@ -132,6 +176,7 @@ export default function PostTaskPage() {
         reward: ''
       })
       setSelectedDateTime(undefined)
+      setErrors({})
 
       // Redirect to available tasks after a brief delay
       setTimeout(() => {
@@ -201,11 +246,16 @@ export default function PostTaskPage() {
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   required
-                  className="focus:border-blue-500 transition-all duration-200"
+                  className={`focus:border-blue-500 transition-all duration-200 ${
+                    errors.title ? 'border-red-500 focus:border-red-500' : ''
+                  }`}
                   style={{ 
                     opacity: isVisible ? 1 : 0.7,
                   }}
                 />
+                {errors.title && (
+                  <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Be specific! Good titles get faster responses
@@ -277,6 +327,9 @@ export default function PostTaskPage() {
                   <div className="space-y-3">
                     <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                       <p className="text-sm text-red-600 font-medium">⚠️ {locationError}</p>
+                      {errors.location && (
+                        <p className="text-red-500 text-sm mt-1">{errors.location}</p>
+                      )}
                       {showSafariHelp && (
                         <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-sm font-semibold text-blue-800 mb-2">Safari Location Help:</p>
@@ -310,8 +363,13 @@ export default function PostTaskPage() {
                 value={formData.address_details}
                 onChange={(e) => handleInputChange('address_details', e.target.value)}
                 required
-                className="focus:border-blue-500"
+                className={`focus:border-blue-500 ${
+                  errors.address_details ? 'border-red-500 focus:border-red-500' : ''
+                }`}
               />
+              {errors.address_details && (
+                <p className="text-red-500 text-sm mt-1">{errors.address_details}</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 Detailed address helps runners find you quickly!
               </p>
@@ -326,7 +384,11 @@ export default function PostTaskPage() {
                   date={selectedDateTime}
                   onDateTimeChange={setSelectedDateTime}
                   placeholder="Pick a date and time"
+                  className={errors.datetime ? 'border-red-500 focus:border-red-500' : ''}
                 />
+                {errors.datetime && (
+                  <p className="text-red-500 text-sm mt-1">{errors.datetime}</p>
+                )}
               </div>
               <p className="text-sm text-gray-600">
                 {selectedDateTime 
@@ -349,9 +411,14 @@ export default function PostTaskPage() {
                   onChange={(e) => handleInputChange('reward', e.target.value)}
                   required
                   min="1"
-                  className="focus:border-blue-500 pl-8"
+                  className={`focus:border-blue-500 pl-8 ${
+                    errors.reward ? 'border-red-500 focus:border-red-500' : ''
+                  }`}
                 />
                 <div className="absolute left-3 top-3 text-gray-500">{getCurrencySymbol(currency)}</div>
+                {errors.reward && (
+                  <p className="text-red-500 text-sm mt-1">{errors.reward}</p>
+                )}
               </div>
             </div>
 
